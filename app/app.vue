@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import { mapVerticalToHorizontalScroll } from "./utils/horizontalScroll";
+import { initResponsiveHorizontalScroll } from "./utils/responsiveHorizontalScroll";
 
 const scrollWrapper = ref(null);
 let dispose: (() => void) | null = null;
 
 onMounted(() => {
   if (!scrollWrapper.value) return;
-  dispose = mapVerticalToHorizontalScroll(scrollWrapper.value, {
-    duration: 0.8,
-    speedMultiplier: 1,
+  dispose = initResponsiveHorizontalScroll(scrollWrapper.value, {
+    breakpointRatio: 1,
+    portraitClass: "is-portrait",
+    mapOptions: {
+      duration: 0.8,
+      speedMultiplier: 1,
+    },
   });
 });
 
@@ -38,22 +42,23 @@ onBeforeUnmount(() => {
     color: white;
     height: 100%;
     flex: 0 0 auto;
+    min-width: 100vw;
 
     &:nth-child(1) {
       background-color: #474aff;
-      width: calc(100vw + 10px);
+      width: 2000px;
     }
     &:nth-child(2) {
       background-color: #ff0073;
-      width: calc(100vw + 300px);
+      width: 2500px;
     }
     &:nth-child(3) {
       background-color: #ff3737;
-      width: calc(100vw + 200px);
+      width: 2500px;
     }
     &:nth-child(4) {
       background-color: #ff7700;
-      width: calc(100vw + 10px);
+      width: 2500px;
     }
     &:nth-child(5) {
       background-color: #f2e8e5;
@@ -61,5 +66,19 @@ onBeforeUnmount(() => {
       width: 100vw;
     }
   }
+}
+
+/* Portrait / small-aspect handling: disable horizontal mapping and stack items */
+.horizontal-scroll-wrapper.is-portrait {
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.horizontal-scroll-wrapper.is-portrait > div {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 60vh;
+  flex: none;
 }
 </style>
