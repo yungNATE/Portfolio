@@ -57,29 +57,36 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="education">
-    <ul>
-      <li>DUT Informatique</li>
-      <li>Licence Professionnelle Métiers du Numérique</li>
-      <li>Master HIC parcours UX Design</li>
-    </ul>
+  <div class="introWrapper">
+    <div class="education">
+      <ul>
+        <li>DUT Informatique</li>
+        <li>Licence Professionnelle Métiers du Numérique</li>
+        <li>Master HIC parcours UX Design</li>
+      </ul>
+    </div>
+    <div class="titles" ref="titles">
+      <h1 class="active">Nathan Martinigol</h1>
+      <p class="h1">Informaticien</p>
+      <p class="h1">Développeur Frontend</p>
+      <p class="h1">UX Designer</p>
+    </div>
+    <pre ref="asciiArt" class="ascii-art"></pre>
   </div>
-  <div class="titles" ref="titles">
-    <h1 class="active">Nathan Martinigol</h1>
-    <p class="h1">Informaticien</p>
-    <p class="h1">Développeur Frontend</p>
-    <p class="h1">UX Designer</p>
-  </div>
-
-  <pre ref="asciiArt" class="ascii-art"></pre>
 </template>
 
 <style lang="scss">
-.intro {
+.introWrapper {
   display: flex;
-  align-items: center;
-  justify-content: left;
+  align-items: baseline;
+  justify-content: space-around;
+  flex-direction: column;
   padding: 20px;
+  height: 100%;
+
+  .education {
+    display: flex;
+  }
 
   .titles {
     position: relative;

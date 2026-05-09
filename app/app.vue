@@ -73,40 +73,6 @@ onBeforeUnmount(() => {
       width: 100vw;
     }
   }
-
-  .intro {
-    display: flex;
-    align-items: center;
-    justify-content: left;
-    padding: 20px;
-
-    .titles {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      height: 48px;
-      transition: transform 0.4s ease;
-      // background: var(--background-color);
-
-      h1,
-      .h1 {
-        font-size: 3rem;
-        font-weight: bold;
-        margin: 0;
-        line-height: 1;
-        transition:
-          color 0.4s ease,
-          transform 0.4s ease;
-
-        color: rgba(white, 0.2);
-
-        &.active {
-          color: white;
-        }
-      }
-    }
-  }
 }
 
 /* Base styles for ASCII art (applies in all orientations) */
