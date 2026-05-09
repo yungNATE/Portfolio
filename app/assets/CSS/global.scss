@@ -3,3 +3,18 @@ body,
 #__nuxt {
   height: 100%;
 }
+
+:root {
+  --background-color: #474aff;
+}
+
+// Titles styles (Google Sans Code font and .h1, .h2, .h3 classes)
+h1,
+h2,
+h3,
+.h1,
+.h2,
+.h3 {
+  font-family: "Google Sans Code", monospace;
+  font-weight: 800;
+}
