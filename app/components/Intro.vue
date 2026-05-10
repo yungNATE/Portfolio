@@ -11,6 +11,28 @@ let titleNodes: HTMLElement[] = [];
 let activeIndex = 0;
 let titlesInterval: number | null = null;
 
+const technosList = ref<
+  Array<{
+    title: string;
+    level?: string;
+    description?: string;
+    priority?: number;
+  }>
+>([]);
+
+const { data: fetchedTechnos } = await useAsyncData("technos", () =>
+  queryCollection("technos")
+    .where("priority", "=", 1)
+    .select("title", "level", "description", "priority")
+    .all(),
+);
+technosList.value = (fetchedTechnos?.value || []).map((t: any) => ({
+  title: t.title || "Untitled",
+  level: t.level ?? "///",
+  description: t.description ?? "///",
+  priority: t.priority ?? 999,
+}));
+
 onMounted(async () => {
   await nextTick();
 
@@ -31,8 +53,8 @@ onMounted(async () => {
       titlesInterval = window.setInterval(() => {
         const prev = activeIndex;
         activeIndex = (activeIndex + 1) % titleNodes.length;
-        titleNodes[prev].classList.remove("active");
-        titleNodes[activeIndex].classList.add("active");
+        titleNodes[prev]?.classList.remove("active");
+        titleNodes[activeIndex]?.classList.add("active");
         centerActiveTitle(titleNodes, activeIndex);
       }, delay);
     }
@@ -58,19 +80,37 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="introWrapper">
-    <div class="education">
-      <ul>
-        <li>DUT Informatique</li>
-        <li>Licence Professionnelle Métiers du Numérique</li>
-        <li>Master HIC parcours UX Design</li>
-      </ul>
-    </div>
     <div class="titles" ref="titles">
       <h1 class="active">Nathan Martinigol</h1>
       <p class="h1">Informaticien</p>
       <p class="h1">Développeur Frontend</p>
+      <p class="h1">& créatif</p>
       <p class="h1">UX Designer</p>
+      <p class="h1">Motion Enthusiast</p>
+      <p class="h1">Light Enthusiast</p>
     </div>
+
+    <nav class="main-menu">
+      <ul>
+        <li>
+          <details>
+            <summary>Compétences clés</summary>
+            <ul class="technos">
+              <li v-for="(tech, idx) in technosList" :key="idx">
+                {{ tech.title }}
+              </li>
+              <li><a href="#technos">Plus d'informations</a></li>
+            </ul>
+          </details>
+        </li>
+        <li class="CV">
+          <a href="">Mon CV</a>
+        </li>
+        <li class="contact">
+          <a href="#contact">Discutons</a>
+        </li>
+      </ul>
+    </nav>
     <pre ref="asciiArt" class="ascii-art"></pre>
   </div>
 </template>
@@ -78,15 +118,12 @@ onBeforeUnmount(() => {
 <style lang="scss">
 .introWrapper {
   display: flex;
-  align-items: baseline;
-  justify-content: space-around;
-  flex-direction: column;
+  align-items: center;
+  justify-content: baseline;
+  flex-direction: row;
   padding: 20px;
   height: 100%;
-
-  .education {
-    display: flex;
-  }
+  overflow-y: hidden;
 
   .titles {
     position: relative;
@@ -111,6 +148,15 @@ onBeforeUnmount(() => {
       &.active {
         color: white;
       }
+    }
+  }
+
+  .main-menu {
+    align-self: end;
+
+    > ul {
+      display: flex;
+      gap: 30px;
     }
   }
 }

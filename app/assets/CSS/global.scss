@@ -4,6 +4,9 @@ body,
   height: 100%;
 }
 
+#__nuxt {
+  font-family: "Google Sans Code", monospace;
+}
 :root {
   --background-color: #474aff;
 }
@@ -15,6 +18,5 @@ h3,
 .h1,
 .h2,
 .h3 {
-  font-family: "Google Sans Code", monospace;
   font-weight: 800;
 }
