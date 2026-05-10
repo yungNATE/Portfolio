@@ -1,8 +1,21 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  debug: true,
   compatibilityDate: "2025-07-15",
-  devtools: { enabled: true },
   css: ["@/assets/css/reset.css", "@/assets/css/global.scss"],
-  modules: ["@nuxt/fonts"],
+  modules: ["@nuxt/fonts", "@nuxt/content"],
+
+  debug: true,
+
+  experimental: {
+    debugModuleMutation: true,
+  },
+
+  devtools: {
+    enabled: true,
+  },
+
+  sourcemap: {
+    server: true,
+    client: true,
+  },
 });
