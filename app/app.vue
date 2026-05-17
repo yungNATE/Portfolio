@@ -75,28 +75,6 @@ onBeforeUnmount(() => {
   }
 }
 
-/* Base styles for ASCII art (applies in all orientations) */
-.ascii-art {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
-
-  opacity: 0.3;
-
-  font-family: "Courier New", monospace;
-  font-size: 8px;
-  line-height: 1;
-  letter-spacing: 0;
-  white-space: pre;
-  overflow: auto;
-  color: inherit;
-  margin-top: 5px;
-}
-
 /* Portrait / small-aspect handling: disable horizontal mapping and stack items */
 .horizontal-scroll-wrapper.is-portrait {
   display: block;

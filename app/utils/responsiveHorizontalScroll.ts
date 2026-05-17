@@ -1,10 +1,11 @@
-import { mapVerticalToHorizontalScroll } from './horizontalScroll'
+import { mapVerticalToHorizontalScroll } from "./horizontalScroll";
+import { getScreenMode, getScreenRatio } from "./screen";
 
 export type ResponsiveOptions = {
-  breakpointRatio?: number // width/height threshold (default 1)
-  portraitClass?: string // class applied when portrait (default 'is-portrait')
-  mapOptions?: Parameters<typeof mapVerticalToHorizontalScroll>[1]
-}
+  breakpointRatio?: number; // width/height threshold (default 1)
+  portraitClass?: string; // class applied when portrait (default 'is-portrait')
+  mapOptions?: Parameters<typeof mapVerticalToHorizontalScroll>[1];
+};
 
 /**
  * Initialize responsive horizontal scrolling: enables the vertical->horizontal
@@ -18,41 +19,42 @@ export function initResponsiveHorizontalScroll(
 ) {
   const {
     breakpointRatio = 1,
-    portraitClass = 'is-portrait',
+    portraitClass = "is-portrait",
     mapOptions = {},
-  } = opts
+  } = opts;
 
-  let disposeMap: (() => void) | null = null
+  let disposeMap: (() => void) | null = null;
 
-  const isLandscape = () => window.innerWidth / window.innerHeight >= breakpointRatio
+  const isLandscape = () => getScreenRatio() >= breakpointRatio;
 
   function update() {
-    if (isLandscape()) {
-      el.classList.remove(portraitClass)
-      if (!disposeMap) disposeMap = mapVerticalToHorizontalScroll(el, mapOptions)
+    if (getScreenMode() === "horizontal" && isLandscape()) {
+      el.classList.remove(portraitClass);
+      if (!disposeMap)
+        disposeMap = mapVerticalToHorizontalScroll(el, mapOptions);
     } else {
-      el.classList.add(portraitClass)
+      el.classList.add(portraitClass);
       if (disposeMap) {
-        disposeMap()
-        disposeMap = null
+        disposeMap();
+        disposeMap = null;
       }
     }
   }
 
-  update()
+  update();
 
-  const onResize = () => update()
-  window.addEventListener('resize', onResize)
-  window.addEventListener('orientationchange', onResize)
+  const onResize = () => update();
+  window.addEventListener("resize", onResize);
+  window.addEventListener("orientationchange", onResize);
 
   return () => {
-    window.removeEventListener('resize', onResize)
-    window.removeEventListener('orientationchange', onResize)
+    window.removeEventListener("resize", onResize);
+    window.removeEventListener("orientationchange", onResize);
     if (disposeMap) {
-      disposeMap()
-      disposeMap = null
+      disposeMap();
+      disposeMap = null;
     }
-  }
+  };
 }
 
-export default initResponsiveHorizontalScroll
+export default initResponsiveHorizontalScroll;

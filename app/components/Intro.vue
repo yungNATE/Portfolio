@@ -1,15 +1,68 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import PlayASCIIFrames from "../utils/PlayASCIIFrames_fixed";
 import type { PlayASCIIFramesInstance } from "../utils/PlayASCIIFrames_fixed";
 import { frames } from "../assets/js/ASCIISelfieFrames.js";
+import { useScreenInfo } from "../utils/screen";
 
 const asciiArt = ref<HTMLElement | null>(null);
 const titles = ref<HTMLElement | null>(null);
+const isCompetencesOpen = ref(false);
+const { screenMode } = useScreenInfo();
 let asciiPlayer: PlayASCIIFramesInstance | null = null;
 let titleNodes: HTMLElement[] = [];
 let activeIndex = 0;
 let titlesInterval: number | null = null;
+
+function stopTitleAnimation() {
+  if (titlesInterval) {
+    clearInterval(titlesInterval);
+    titlesInterval = null;
+  }
+
+  if (titles.value) {
+    titles.value.style.transform = "";
+  }
+
+  titleNodes.forEach((node, index) => {
+    node.classList.toggle("active", index === 0);
+  });
+
+  activeIndex = 0;
+}
+
+function startTitleAnimation() {
+  if (!titles.value || screenMode.value !== "horizontal") {
+    stopTitleAnimation();
+    return;
+  }
+
+  titleNodes = Array.from(titles.value.children) as HTMLElement[];
+
+  if (titleNodes.length === 0) {
+    stopTitleAnimation();
+    return;
+  }
+
+  stopTitleAnimation();
+  activeIndex = 0;
+  const delay = 2000; // ms
+  titlesInterval = window.setInterval(() => {
+    const prev = activeIndex;
+    activeIndex = (activeIndex + 1) % titleNodes.length;
+    titleNodes[prev]?.classList.remove("active");
+    titleNodes[activeIndex]?.classList.add("active");
+    centerActiveTitle(titleNodes, activeIndex);
+  }, delay);
+}
+
+function centerActiveTitle(nodes: HTMLElement[], index: number) {
+  let size = 48; // px
+  const offset = size * index - size;
+  if (titles.value) {
+    titles.value.style.transform = `translateY(${-offset}px)`;
+  }
+}
 
 const technosList = ref<
   Array<{
@@ -36,50 +89,34 @@ technosList.value = (fetchedTechnos?.value || []).map((t: any) => ({
 onMounted(async () => {
   await nextTick();
 
+  // Initialize ASCII player
   if (asciiArt.value && frames && frames.length > 0) {
     asciiPlayer = PlayASCIIFrames(frames, {
-      fps: 16,
+      fps: 8,
       element: asciiArt.value,
     });
     asciiPlayer.play();
   }
 
-  if (titles.value) {
-    titleNodes = Array.from(titles.value.children) as HTMLElement[];
+  // Setup title animation (enabled only in horizontal mode)
+  startTitleAnimation();
+});
 
-    if (titleNodes.length > 0) {
-      activeIndex = 0;
-      const delay = 2000; // ms
-      titlesInterval = window.setInterval(() => {
-        const prev = activeIndex;
-        activeIndex = (activeIndex + 1) % titleNodes.length;
-        titleNodes[prev]?.classList.remove("active");
-        titleNodes[activeIndex]?.classList.add("active");
-        centerActiveTitle(titleNodes, activeIndex);
-      }, delay);
-    }
-  }
-
-  function centerActiveTitle(nodes: HTMLElement[], index: number) {
-    let size = 48; // px
-    const offset = size * index - size;
-    if (titles.value) {
-      titles.value.style.transform = `translateY(${-offset}px)`;
-    }
-  }
+watch(screenMode, () => {
+  startTitleAnimation();
 });
 
 onBeforeUnmount(() => {
   asciiPlayer?.dispose();
-  if (titlesInterval) {
-    clearInterval(titlesInterval);
-    titlesInterval = null;
-  }
+  stopTitleAnimation();
 });
 </script>
 
 <template>
-  <div class="introWrapper">
+  <div
+    class="introWrapper"
+    :class="{ 'is-portrait': screenMode === 'vertical' }"
+  >
     <div class="titles" ref="titles">
       <h1 class="active">Nathan Martinigol</h1>
       <p class="h1">Informaticien</p>
@@ -93,15 +130,28 @@ onBeforeUnmount(() => {
     <nav class="main-menu">
       <ul>
         <li>
-          <details>
-            <summary>Compétences clés</summary>
-            <ul class="technos">
-              <li v-for="(tech, idx) in technosList" :key="idx">
-                {{ tech.title }}
-              </li>
-              <li><a href="#technos">Plus d'informations</a></li>
-            </ul>
-          </details>
+          <button
+            class="competences-btn"
+            :aria-expanded="isCompetencesOpen"
+            aria-controls="competences-menu"
+            @click="isCompetencesOpen = !isCompetencesOpen"
+            @keydown.escape="isCompetencesOpen = false"
+          >
+            Compétences clés
+          </button>
+          <ul
+            v-show="isCompetencesOpen"
+            id="competences-menu"
+            class="technos"
+            role="menu"
+          >
+            <li v-for="(tech, idx) in technosList" :key="idx" role="menuitem">
+              {{ tech.title }}
+            </li>
+            <li role="menuitem">
+              <a href="#technos">Plus d'informations</a>
+            </li>
+          </ul>
         </li>
         <li class="CV">
           <a href="">Mon CV</a>
@@ -117,21 +167,52 @@ onBeforeUnmount(() => {
 
 <style lang="scss">
 .introWrapper {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
-  justify-content: baseline;
+  justify-content: flex-start;
   flex-direction: row;
   padding: 20px;
-  height: 100%;
-  overflow-y: hidden;
+  min-height: 100%;
+  overflow: hidden;
+
+  &.is-portrait {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+
+    .titles,
+    .main-menu {
+      width: 100%;
+      z-index: 1;
+    }
+
+    .ascii-art {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      justify-content: center;
+      align-items: flex-start;
+      font-size: clamp(0.28rem, 1.7vw, 0.8vh);
+    }
+  }
 
   .titles {
     position: relative;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    height: 48px;
     transition: transform 0.4s ease;
+
+    .animated {
+      height: 48px;
+    }
 
     h1,
     .h1 {
@@ -152,45 +233,134 @@ onBeforeUnmount(() => {
   }
 
   .main-menu {
-    align-self: end;
+    position: relative;
+    align-self: start;
+    z-index: 1;
 
     > ul {
       display: flex;
       gap: 30px;
+      list-style: none;
     }
+
+    li {
+      position: relative;
+    }
+  }
+}
+
+.competences-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+  font-weight: inherit;
+  transition: color 0.2s ease;
+
+  &:hover,
+  &:focus {
+    color: rgba(white, 0.8);
+    outline: 2px solid rgba(white, 0.4);
+    outline-offset: 2px;
+  }
+
+  &[aria-expanded="true"] {
+    color: white;
+  }
+}
+
+#competences-menu {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0 0;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  border-radius: 4px;
+  min-width: 220px;
+  animation: slideDown 0.3s ease-out;
+  z-index: 10;
+
+  li {
+    padding: 10px 15px;
+    transition: background-color 0.2s ease;
+
+    &:first-child {
+      border-radius: 4px 4px 0 0;
+    }
+
+    &:last-child {
+      border-radius: 0 0 4px 4px;
+    }
+
+    &:hover {
+      background-color: rgba(white, 0.1);
+    }
+
+    &[role="menuitem"]:focus-within {
+      background-color: rgba(white, 0.15);
+      outline: 2px solid rgba(white, 0.4);
+      outline-offset: -2px;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      display: block;
+
+      &:focus {
+        outline: 2px solid rgba(white, 0.4);
+        outline-offset: 2px;
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
 /* Base styles for ASCII art (applies in all orientations) */
 .ascii-art {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
+  inset: 0 auto 0 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 0;
   pointer-events: none;
 
   opacity: 0.3;
 
   font-family: "Courier New", monospace;
-  font-size: 8px;
-  line-height: 1;
+  font-size: clamp(0.34rem, 0.72vw, 1.05vh);
+  line-height: 0.95;
   letter-spacing: 0;
   white-space: pre;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 20px;
   color: inherit;
-  margin-top: 5px;
 }
 
-/* Portrait / small-aspect handling: disable horizontal mapping and stack items */
-.horizontal-scroll-wrapper.is-portrait {
-  display: block;
-  overflow-x: hidden;
-  overflow-y: auto;
-
+@media (max-width: 768px), (max-aspect-ratio: 1/1) {
   .ascii-art {
-    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    font-size: clamp(0.28rem, 1.7vw, 0.8vh);
+    line-height: 0.9;
   }
 }
 </style>

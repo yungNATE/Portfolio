@@ -1,5 +1,7 @@
 import gsap from "gsap";
 
+import { getScreenRatio } from "./screen";
+
 export type HorizontalScrollOptions = {
   duration?: number;
   ease?: string;
@@ -22,7 +24,7 @@ export function mapVerticalToHorizontalScroll(
     const maxScroll = el.scrollWidth - el.clientWidth;
     const currentScroll = el.scrollLeft;
 
-    const screenRatio = window.innerWidth / window.innerHeight;
+    const screenRatio = getScreenRatio();
     const speedRatioFactor = Math.min(Math.max(1, screenRatio), 2);
 
     const delta = e.deltaY * speedMultiplier * speedRatioFactor;
