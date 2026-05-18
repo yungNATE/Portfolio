@@ -27,17 +27,32 @@ a {
   color: white;
   font-weight: 600;
 
+  &::after {
+    margin-left: 0.35em;
+    display: inline-block;
+    transition: transform 200ms ease;
+  }
+
   // External links with arrow animation
   &.external {
     &::after {
       content: "↗";
-      margin-left: 0.35em;
-      display: inline-block;
-      transition: transform 200ms ease;
     }
 
     &:hover::after {
       transform: translate(2px, -2px);
+    }
+  }
+
+  &.anchor {
+    scroll-behavior: smooth;
+
+    &::after {
+      content: "→";
+    }
+
+    &:hover::after {
+      transform: translateX(2px);
     }
   }
 }
