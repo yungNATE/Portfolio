@@ -1,0 +1,6 @@
+1. Finir contact
+2. Régler le scroll trop lent
+3. Ajouter SEO (et autre plugin importants)
+4. Uploader sur netlify
+5. Acheter le nom de domaine
+6. Migrer
