@@ -31,19 +31,19 @@ function stopTitleAnimation() {
 }
 
 function startTitleAnimation() {
-  if (!titles.value || screenMode.value !== "horizontal") {
-    stopTitleAnimation();
+  stopTitleAnimation(); // Clean reset before starting
+  let isHorizontal = screenMode.value === "horizontal";
+
+  if (!titles.value) {
     return;
   }
 
   titleNodes = Array.from(titles.value.children) as HTMLElement[];
 
   if (titleNodes.length === 0) {
-    stopTitleAnimation();
     return;
   }
 
-  stopTitleAnimation();
   activeIndex = 0;
   const delay = 2000; // ms
   titlesInterval = window.setInterval(() => {
@@ -51,7 +51,7 @@ function startTitleAnimation() {
     activeIndex = (activeIndex + 1) % titleNodes.length;
     titleNodes[prev]?.classList.remove("active");
     titleNodes[activeIndex]?.classList.add("active");
-    centerActiveTitle(titleNodes, activeIndex);
+    isHorizontal ? centerActiveTitle(titleNodes, activeIndex) : null;
   }, delay);
 }
 
@@ -104,15 +104,27 @@ onBeforeUnmount(() => {
       <p class="h1">Light Enthusiast</p>
     </div>
 
-    <SkillGraph v-if="screenMode === 'horizontal'" />
+    <SkillGraph />
 
     <nav class="main-menu">
       <ul>
         <li class="CV">
-          <a href="">Mon CV</a>
+          <a
+            href="/Frontend_CV_MartinigolNathan.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="external"
+            >CV</a
+          >
         </li>
         <li class="contact">
-          <a href="#contact">Discutons</a>
+          <a
+            href="https://www.linkedin.com/in/martinigol/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="external"
+            >Linkedin</a
+          >
         </li>
       </ul>
     </nav>
@@ -131,12 +143,13 @@ onBeforeUnmount(() => {
   padding: 20px;
   min-height: 100%;
   overflow: hidden;
+  gap: 50px;
 
   &.is-portrait {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 20px;
+    gap: 50px 20px;
 
     .titles,
     .main-menu {
@@ -196,6 +209,8 @@ onBeforeUnmount(() => {
       display: flex;
       gap: 30px;
       list-style: none;
+      justify-content: center;
+      padding: 0;
     }
 
     li {

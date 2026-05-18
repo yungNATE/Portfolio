@@ -125,6 +125,7 @@ const skills = graphSkills;
 
 let ro: ResizeObserver | null = null;
 let simulation: d3.Simulation<GraphNode, undefined> | null = null;
+let isDragging = false;
 
 function announce(text: string) {
   if (liveRef.value) {
@@ -430,29 +431,36 @@ function render() {
       d.kind === "skill"
         ? `${d.label}, ${d.level}, ${d.group || "Compétences"}`
         : d.label,
-    )
+    );
+
+  // Add title elements with proper labels
+  nodeSelection.append("title").text((d) => {
+    if (d.kind === "skill") {
+      return `${d.label} - Niveau: ${d.level}`;
+    } else if (d.kind === "category") {
+      return `Catégorie: ${d.label}`;
+    } else if (d.kind === "root") {
+      return "Compétences clés - Revenir à l'accueil";
+    } else if (d.kind === "detail" && d.detailKind === "level") {
+      return `Niveau de compétence`;
+    } else if (d.kind === "detail" && d.detailKind === "description") {
+      return "Description";
+    }
+    return d.label;
+  });
+
+  nodeSelection
     .on("mouseenter focus", (_event, d) => {
-      if (!isClickableNode(d)) return;
+      if (!isClickableNode(d) || isDragging) return;
 
       announce(
         d.kind === "skill"
-          ? `${d.label}: ${d.level} — ${d.description || d.group || "Compétence"}`
+          ? `${d.label}: ${d.level} - ${d.description || d.group || "Compétence"}`
           : d.label,
       );
-      // highlight connected links and dim others
+      // dim unrelated nodes
       try {
         const targetId = d.id;
-        linkSelection.classed("link--highlight", (l) => {
-          const s =
-            typeof l.source === "string"
-              ? l.source
-              : (l.source as GraphNode).id;
-          const t =
-            typeof l.target === "string"
-              ? l.target
-              : (l.target as GraphNode).id;
-          return s === targetId || t === targetId;
-        });
         linkSelection.classed("dimmed", (l) => {
           const s =
             typeof l.source === "string"
@@ -470,13 +478,11 @@ function render() {
       } catch (e) {}
     })
     .on("mouseleave blur", (_event, d) => {
-      if (!isClickableNode(d)) return;
+      if (!isClickableNode(d) || isDragging) return;
 
       announce("");
       try {
-        linkSelection
-          .classed("link--highlight", false)
-          .classed("dimmed", false);
+        linkSelection.classed("dimmed", false);
         nodeSelection.classed("dimmed", false).classed("node--hover", false);
       } catch (e) {}
     });
@@ -485,10 +491,45 @@ function render() {
     .append("circle")
     .attr("r", (d) => d.radius)
     .attr("fill", (d) => {
-      if (d.kind === "root") return "rgba(255,255,255,0.9)";
-      if (d.kind === "category") return "rgba(255,255,255,0.24)";
-      return "rgba(255,255,255,0.64)";
+      // Calculate depth: 0=root, 1=category, 2=skill, 3+=detail
+      const depthMap: Record<string, number> = {
+        root: 0,
+        category: 1,
+        skill: 2,
+        detail: 3,
+      };
+      const depth = depthMap[d.kind] || 0;
+      // Logarithmic opacity: 0.25 + 0.25 * log2(depth + 1)
+      // depth 0 → 0.25, depth 1 → 0.50, depth 2 → ~0.65
+      const opacity = Math.min(
+        0.9,
+        0.25 + 0.25 * (Math.log(depth + 1) / Math.log(2)),
+      );
+      return `rgba(255,255,255,${opacity})`;
     });
+
+  // Add arrow icons on nodes (only at depth > 1 and on clickable elements)
+  if (currentDepth.value > 1) {
+    nodeSelection
+      .filter((d) => isClickableNode(d))
+      .append("text")
+      .attr("class", "node-icon")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "middle")
+      .attr("font-size", (d) => (d.kind === "root" ? 16 : 12))
+      .attr("fill", "rgba(0,0,0,0.4)")
+      .attr("pointer-events", "none")
+      .text((d) => {
+        if (d.kind === "root") {
+          return "↻"; // circular arrow for reset
+        } else if (d.kind === "category") {
+          return "←"; // left arrow for going back
+        }
+        return "";
+      });
+  }
 
   const textSelection = nodeSelection
     .append("text")
@@ -496,7 +537,7 @@ function render() {
     .attr("text-anchor", "middle")
     .attr("fill", "currentColor")
     .attr("font-size", (d) =>
-      d.kind === "root" ? 13 : d.kind === "category" ? 12 : 11,
+      d.kind === "root" ? 18 : d.kind === "category" ? 16 : 14,
     )
     .attr("font-weight", (d) => (d.kind === "root" ? 700 : 600));
   textSelection.each(function (d) {
@@ -569,7 +610,10 @@ function render() {
   // Drag + click behaviour
   function dragstarted(event: any, d: GraphNode) {
     if (!simulation) return;
+    isDragging = true;
     if (!event.active) simulation.alphaTarget(0.3).restart();
+    linkSelection.classed("dimmed", false);
+    nodeSelection.classed("dimmed", false).classed("node--hover", false);
     d.fx = d.x;
     d.fy = d.y;
   }
@@ -581,6 +625,7 @@ function render() {
 
   function dragended(event: any, d: GraphNode) {
     if (!simulation) return;
+    isDragging = false;
     if (!event.active) simulation.alphaTarget(0);
     d.fx = null;
     d.fy = null;
@@ -713,6 +758,7 @@ onBeforeUnmount(() => {
   margin-top: 20px;
   color: inherit;
   overflow: visible;
+  padding-inline: 40px;
 }
 
 .skill-graph-svg {
@@ -720,81 +766,6 @@ onBeforeUnmount(() => {
   height: auto;
   display: block;
   overflow: visible;
-}
-
-.node {
-  cursor: pointer;
-}
-
-.node text {
-  pointer-events: none;
-}
-
-.node--root text {
-  letter-spacing: 0.03em;
-}
-
-.node--category circle {
-  fill-opacity: 0.25;
-}
-
-.node--skill circle {
-  stroke: rgba(255, 255, 255, 0.2);
-  stroke-width: 1;
-}
-
-.node--anchor circle {
-  fill: rgba(0, 150, 200, 0.95);
-}
-
-.node--anchor:hover {
-  transform: scale(1.08);
-}
-
-.node--nav circle {
-  fill: rgba(200, 150, 0, 0.95);
-}
-
-.node--nav:hover {
-  transform: scale(1.06);
-}
-
-.node--hover {
-  transform: scale(1.06);
-}
-
-.node.dimmed {
-  opacity: 0.28;
-}
-
-.node--fixed {
-  opacity: 0.92;
-}
-
-.node--fixed circle {
-  fill: rgba(255, 255, 255, 0.24);
-  stroke: rgba(0, 0, 0, 0.06);
-}
-
-.node--clickable {
-  transition:
-    transform 160ms ease,
-    filter 160ms ease,
-    opacity 160ms ease;
-}
-
-.node--clickable.node--hover {
-  transform: scale(1.08);
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.18));
-}
-
-.links line.link--highlight {
-  stroke: rgba(255, 255, 255, 0.95);
-  stroke-width: 2.6;
-}
-
-.links line.dimmed {
-  opacity: 0.18;
 }
 
 .sr-only {
@@ -807,5 +778,61 @@ onBeforeUnmount(() => {
   border: 0;
   padding: 0;
   margin: -1px;
+}
+</style>
+
+<style>
+.skill-graph-wrapper .node {
+  cursor: pointer;
+}
+
+.skill-graph-wrapper .node text {
+  pointer-events: none;
+}
+
+.skill-graph-wrapper .node-icon {
+  fill: white;
+}
+
+.skill-graph-wrapper .node--category circle {
+  fill-opacity: 0.25;
+}
+
+.skill-graph-wrapper .node--skill circle {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1;
+}
+
+.skill-graph-wrapper .node--anchor circle {
+  fill: rgba(0, 150, 200, 0.95);
+}
+
+.skill-graph-wrapper .node--nav circle {
+  fill: rgba(200, 150, 0, 0.95);
+}
+
+.skill-graph-wrapper .node.dimmed {
+  opacity: 0.28;
+}
+
+.skill-graph-wrapper .node--fixed {
+  opacity: 0.92;
+}
+
+.skill-graph-wrapper .node--fixed circle {
+  fill: rgba(255, 255, 255, 0.24);
+  stroke: rgba(0, 0, 0, 0.06);
+}
+
+.skill-graph-wrapper .node--clickable {
+  transition: opacity 120ms ease;
+}
+
+.skill-graph-wrapper .node--clickable.node--hover {
+  opacity: 0.95;
+}
+
+.skill-graph-wrapper .links line.dimmed {
+  opacity: 0.18;
 }
 </style>

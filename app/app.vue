@@ -47,7 +47,6 @@ onBeforeUnmount(() => {
     isolation: isolate;
 
     color: white;
-    height: 100%;
     flex: 0 0 auto;
     min-width: 100vw;
 
