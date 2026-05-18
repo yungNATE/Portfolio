@@ -2,7 +2,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import PlayASCIIFrames from "../utils/PlayASCIIFrames_fixed";
 import type { PlayASCIIFramesInstance } from "../utils/PlayASCIIFrames_fixed";
-import { frames } from "../assets/js/ASCIISelfieFrames.js";
+import { frames } from "../assets/js/ASCIISelfieFrames2.js";
 import { useScreenInfo } from "../utils/screen";
 
 const asciiArt = ref<HTMLElement | null>(null);
@@ -69,7 +69,7 @@ onMounted(async () => {
   // Initialize ASCII player
   if (asciiArt.value && frames && frames.length > 0) {
     asciiPlayer = PlayASCIIFrames(frames, {
-      fps: 8,
+      fps: 24,
       element: asciiArt.value,
     });
     asciiPlayer.play();
