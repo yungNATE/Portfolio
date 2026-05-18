@@ -94,15 +94,21 @@ onBeforeUnmount(() => {
     class="introWrapper"
     :class="{ 'is-portrait': screenMode === 'vertical' }"
   >
-    <div class="titles" ref="titles">
-      <h1 class="active">Nathan Martinigol</h1>
-      <p class="h1">Informaticien</p>
-      <p class="h1">Développeur Frontend</p>
-      <p class="h1">& créatif</p>
-      <p class="h1">UX Designer</p>
-      <p class="h1">Motion Enthusiast</p>
-      <p class="h1">Light Enthusiast</p>
-    </div>
+    <ul
+      class="titles"
+      ref="titles"
+      aria-label="Présentation de Nathan Martinigol"
+    >
+      <li class="active">
+        <h1>Nathan Martinigol</h1>
+      </li>
+      <li class="h1"><p>Informaticien</p></li>
+      <li class="h1"><p>Développeur Frontend</p></li>
+      <li class="h1"><p>& créatif</p></li>
+      <li class="h1"><p>UX Designer</p></li>
+      <li class="h1"><p>Motion Enthusiast</p></li>
+      <li class="h1"><p>Light Enthusiast</p></li>
+    </ul>
 
     <SkillGraph />
 
@@ -126,6 +132,9 @@ onBeforeUnmount(() => {
             >Linkedin</a
           >
         </li>
+        <li class="contact">
+          <a href="#contact" class="anchor">Discutons</a>
+        </li>
       </ul>
     </nav>
     <pre ref="asciiArt" class="ascii-art"></pre>
@@ -140,7 +149,6 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: flex-start;
   flex-direction: row;
-  padding: 20px;
   min-height: 100%;
   overflow: hidden;
   gap: 50px;
@@ -176,15 +184,17 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
     transition: transform 0.4s ease;
 
     .animated {
       height: 48px;
     }
 
-    h1,
-    .h1 {
-      font-size: 3rem;
+    li {
+      font-size: clamp(1rem, 7vw, 3rem);
       font-weight: bold;
       margin: 0;
       line-height: 1;
@@ -196,6 +206,13 @@ onBeforeUnmount(() => {
 
       &.active {
         color: white;
+      }
+
+      h1 {
+        font-size: inherit;
+        font-weight: inherit;
+        margin: 0;
+        line-height: inherit;
       }
     }
   }

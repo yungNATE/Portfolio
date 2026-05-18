@@ -30,10 +30,14 @@ onBeforeUnmount(() => {
     <section class="intro">
       <Intro />
     </section>
-    <section>item 2</section>
-    <section>item 3</section>
-    <section>item 4</section>
-    <section>item 5</section>
+
+    <section>
+      <Wip />
+    </section>
+
+    <section id="contact">
+      <Contact />
+    </section>
   </div>
 </template>
 
@@ -43,33 +47,52 @@ onBeforeUnmount(() => {
   display: flex;
   overflow-x: scroll;
 
+  &:not(.is-portrait) {
+    > section {
+      min-width: 100vw;
+      height: 100%;
+    }
+  }
+
+  &.is-portrait {
+    > section {
+      min-height: 100vh;
+      width: 100%;
+    }
+  }
+
   > section {
     isolation: isolate;
 
     color: white;
     flex: 0 0 auto;
-    min-width: 100vw;
+    padding: 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:nth-child(1) {
       background-color: #474aff;
-      min-width: 100vw;
     }
     &:nth-child(2) {
       background-color: #ff0073;
-      width: 2500px;
     }
     &:nth-child(3) {
       background-color: #ff3737;
-      width: 2500px;
     }
     &:nth-child(4) {
       background-color: #ff7700;
-      width: 2500px;
     }
-    &:nth-child(5) {
+    &:last-child {
       background-color: #f2e8e5;
       color: black;
       width: 100vw;
+    }
+
+    > div {
+      height: 100%;
+      width: 100%;
     }
   }
 }
@@ -77,18 +100,5 @@ onBeforeUnmount(() => {
 /* Portrait / small-aspect handling: disable horizontal mapping and stack items */
 .horizontal-scroll-wrapper.is-portrait {
   display: block;
-  overflow-x: hidden;
-  overflow-y: auto;
-
-  .ascii-art {
-    overflow: hidden;
-  }
-}
-
-.horizontal-scroll-wrapper.is-portrait > div {
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 60vh;
-  flex: none;
 }
 </style>
