@@ -20,6 +20,7 @@
     "vue-router": "^5.0.6"
   },
   "devDependencies": {
+    "@types/d3": "^7.4.3",
     "sass": "^1.99.0"
   }
 }

@@ -7,7 +7,6 @@ import { useScreenInfo } from "../utils/screen";
 
 const asciiArt = ref<HTMLElement | null>(null);
 const titles = ref<HTMLElement | null>(null);
-const isCompetencesOpen = ref(false);
 const { screenMode } = useScreenInfo();
 let asciiPlayer: PlayASCIIFramesInstance | null = null;
 let titleNodes: HTMLElement[] = [];
@@ -64,28 +63,6 @@ function centerActiveTitle(nodes: HTMLElement[], index: number) {
   }
 }
 
-const technosList = ref<
-  Array<{
-    title: string;
-    level?: string;
-    description?: string;
-    priority?: number;
-  }>
->([]);
-
-const { data: fetchedTechnos } = await useAsyncData("technos", () =>
-  queryCollection("technos")
-    .where("priority", "=", 1)
-    .select("title", "level", "description", "priority")
-    .all(),
-);
-technosList.value = (fetchedTechnos?.value || []).map((t: any) => ({
-  title: t.title || "Untitled",
-  level: t.level ?? "///",
-  description: t.description ?? "///",
-  priority: t.priority ?? 999,
-}));
-
 onMounted(async () => {
   await nextTick();
 
@@ -127,32 +104,10 @@ onBeforeUnmount(() => {
       <p class="h1">Light Enthusiast</p>
     </div>
 
+    <SkillGraph v-if="screenMode === 'horizontal'" />
+
     <nav class="main-menu">
       <ul>
-        <li>
-          <button
-            class="competences-btn"
-            :aria-expanded="isCompetencesOpen"
-            aria-controls="competences-menu"
-            @click="isCompetencesOpen = !isCompetencesOpen"
-            @keydown.escape="isCompetencesOpen = false"
-          >
-            Compétences clés
-          </button>
-          <ul
-            v-show="isCompetencesOpen"
-            id="competences-menu"
-            class="technos"
-            role="menu"
-          >
-            <li v-for="(tech, idx) in technosList" :key="idx" role="menuitem">
-              {{ tech.title }}
-            </li>
-            <li role="menuitem">
-              <a href="#technos">Plus d'informations</a>
-            </li>
-          </ul>
-        </li>
         <li class="CV">
           <a href="">Mon CV</a>
         </li>
@@ -245,77 +200,6 @@ onBeforeUnmount(() => {
 
     li {
       position: relative;
-    }
-  }
-}
-
-.competences-btn {
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  font-size: inherit;
-  padding: 0;
-  font-weight: inherit;
-  transition: color 0.2s ease;
-
-  &:hover,
-  &:focus {
-    color: rgba(white, 0.8);
-    outline: 2px solid rgba(white, 0.4);
-    outline-offset: 2px;
-  }
-
-  &[aria-expanded="true"] {
-    color: white;
-  }
-}
-
-#competences-menu {
-  list-style: none;
-  padding: 0;
-  margin: 10px 0 0 0;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  border-radius: 4px;
-  min-width: 220px;
-  animation: slideDown 0.3s ease-out;
-  z-index: 10;
-
-  li {
-    padding: 10px 15px;
-    transition: background-color 0.2s ease;
-
-    &:first-child {
-      border-radius: 4px 4px 0 0;
-    }
-
-    &:last-child {
-      border-radius: 0 0 4px 4px;
-    }
-
-    &:hover {
-      background-color: rgba(white, 0.1);
-    }
-
-    &[role="menuitem"]:focus-within {
-      background-color: rgba(white, 0.15);
-      outline: 2px solid rgba(white, 0.4);
-      outline-offset: -2px;
-    }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-      display: block;
-
-      &:focus {
-        outline: 2px solid rgba(white, 0.4);
-        outline-offset: 2px;
-      }
     }
   }
 }
