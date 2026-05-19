@@ -15,6 +15,7 @@
         <button type="submit">Send</button>
       </p>
     </form>
+    <a href="#intro">Back home</a>
   </div>
 </template>
 

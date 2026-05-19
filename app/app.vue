@@ -27,7 +27,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="scrollWrapper" class="horizontal-scroll-wrapper">
-    <section class="intro">
+    <section id="intro">
       <Intro />
     </section>
 
