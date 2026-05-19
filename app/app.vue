@@ -6,7 +6,23 @@ import Intro from "./components/Intro.vue";
 const scrollWrapper = ref<HTMLElement | null>(null);
 let disposeScroll: (() => void) | null = null;
 
+function syncSectionColors() {
+  const sections =
+    scrollWrapper.value?.querySelectorAll<HTMLElement>("section[data-color]") ??
+    [];
+
+  sections.forEach((section) => {
+    const color = section.dataset.color;
+
+    if (color) {
+      section.style.setProperty("--section-color", color);
+    }
+  });
+}
+
 onMounted(() => {
+  syncSectionColors();
+
   // Initialiser le scroll horizontal (si l'élément est disponible)
   if (scrollWrapper.value) {
     disposeScroll = initResponsiveHorizontalScroll(scrollWrapper.value, {
@@ -27,15 +43,15 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="scrollWrapper" class="horizontal-scroll-wrapper">
-    <section id="intro">
+    <section id="intro" data-color="#474aff">
       <Intro />
     </section>
 
-    <section>
+    <section data-color="#ff0073">
       <Wip />
     </section>
 
-    <section id="contact">
+    <section id="contact" data-color="#f2e8e5">
       <Contact />
     </section>
   </div>
@@ -72,20 +88,9 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
 
-    &:nth-child(1) {
-      background-color: #474aff;
-    }
-    &:nth-child(2) {
-      background-color: #ff0073;
-    }
-    &:nth-child(3) {
-      background-color: #ff3737;
-    }
-    &:nth-child(4) {
-      background-color: #ff7700;
-    }
+    background-color: var(--section-color);
+
     &:last-child {
-      background-color: #f2e8e5;
       color: black;
       width: 100vw;
     }

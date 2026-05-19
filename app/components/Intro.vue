@@ -115,20 +115,13 @@ onBeforeUnmount(() => {
     <nav class="main-menu">
       <ul>
         <li class="CV">
-          <a
-            href="/Frontend_CV_MartinigolNathan.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="external"
-            >CV</a
-          >
+          <a href="/Frontend_CV_MartinigolNathan.pdf" class="external">CV</a>
         </li>
         <li class="contact">
           <a
             href="https://www.linkedin.com/in/martinigol/"
-            target="_blank"
-            rel="noopener noreferrer"
             class="external"
+            target="_blank"
             >Linkedin</a
           >
         </li>
