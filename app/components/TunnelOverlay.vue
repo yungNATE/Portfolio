@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, watch, onBeforeUnmount } from "vue";
 
 const props = withDefaults(
   defineProps<{
@@ -19,6 +19,55 @@ const overlayStyle = computed(() => ({
   "--tunnel-x": `${props.x}px`,
   "--tunnel-y": `${props.y}px`,
 }));
+
+const emit = defineEmits<{
+  (e: "entered"): void;
+  (e: "exited"): void;
+}>();
+
+// Timings hardcoded inside the overlay (single source of truth).
+const ENTER_MS = 650;
+const EXIT_MS = 650;
+
+let enterTimer: number | null = null;
+let exitTimer: number | null = null;
+
+function clearTimers() {
+  if (enterTimer !== null) {
+    window.clearTimeout(enterTimer);
+    enterTimer = null;
+  }
+  if (exitTimer !== null) {
+    window.clearTimeout(exitTimer);
+    exitTimer = null;
+  }
+}
+
+watch(
+  () => [props.active, props.phase] as const,
+  ([active, phase]) => {
+    if (!active) {
+      clearTimers();
+      return;
+    }
+
+    clearTimers();
+
+    if (phase === "enter") {
+      enterTimer = window.setTimeout(() => {
+        emit("entered");
+        enterTimer = null;
+      }, ENTER_MS);
+    } else if (phase === "exit") {
+      exitTimer = window.setTimeout(() => {
+        emit("exited");
+        exitTimer = null;
+      }, EXIT_MS);
+    }
+  },
+);
+
+onBeforeUnmount(() => clearTimers());
 </script>
 
 <template>

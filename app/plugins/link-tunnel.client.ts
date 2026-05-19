@@ -1,11 +1,7 @@
 import { createVNode, render } from "vue";
-import LinkTunnelProvider from "~/components/LinkTunnelProvider.vue";
+import LinkTransitionProvider from "~/components/LinkTransitionProvider.vue";
 
 export default defineNuxtPlugin(() => {
-  if (!process.client) {
-    return;
-  }
-
   if (document.getElementById("link-tunnel-provider-root")) {
     return;
   }
@@ -14,5 +10,5 @@ export default defineNuxtPlugin(() => {
   container.id = "link-tunnel-provider-root";
   document.body.appendChild(container);
 
-  render(createVNode(LinkTunnelProvider), container);
+  render(createVNode(LinkTransitionProvider), container);
 });
