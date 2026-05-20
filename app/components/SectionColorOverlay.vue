@@ -1,64 +1,108 @@
 <script setup lang="ts">
-import { computed, watch, onBeforeUnmount } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 
-// This overlay implements a single, hardcoded "morph"-like animation.
-// Timings and transitions are owned by this component.
-const props = defineProps<{
-  active: boolean;
-  stage: "out" | "in";
-  currentHtml: string;
-  targetHtml: string;
-  currentColor: string;
-  targetColor: string;
-  backgroundColor: string;
-  currentWidth: number;
-  currentHeight: number;
-  targetWidth: number;
-  targetHeight: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    active: boolean;
+    stage: "out" | "colorTransition" | "in";
+    currentColor: string;
+    targetColor: string;
+    outDurationMs?: number;
+    colorDurationMs?: number;
+    inDurationMs?: number;
+  }>(),
+  {
+    outDurationMs: 2000,
+    colorDurationMs: 2000,
+    inDurationMs: 2000,
+  },
+);
 
 const emit = defineEmits<{
   (e: "entered"): void;
+  (e: "colorTransitioned"): void;
   (e: "exited"): void;
 }>();
 
-// Timings (ms) for this "morph" overlay — hardcoded here.
-const ENTER_MS = 320; // time before emitting 'entered' during enter phase
-const EXIT_MS = 340; // time before emitting 'exited' during exit phase
-
 let enterTimer: number | null = null;
+let colorTimer: number | null = null;
 let exitTimer: number | null = null;
+let animationFrameId: number | null = null;
+const isExpanded = ref(false);
+const isColorTransitioning = ref(false);
+const displayedColor = ref(props.currentColor);
 
 function clearTimers() {
+  if (animationFrameId !== null) {
+    window.cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+
   if (enterTimer !== null) {
     window.clearTimeout(enterTimer);
     enterTimer = null;
   }
+
+  if (colorTimer !== null) {
+    window.clearTimeout(colorTimer);
+    colorTimer = null;
+  }
+
   if (exitTimer !== null) {
     window.clearTimeout(exitTimer);
     exitTimer = null;
   }
 }
 
+function resetOverlayState() {
+  isExpanded.value = false;
+  isColorTransitioning.value = false;
+  displayedColor.value = props.currentColor;
+}
+
 watch(
-  () => [props.active, props.stage],
+  () => [props.active, props.stage] as const,
   ([active, stage]) => {
     clearTimers();
 
-    if (!active) return;
+    if (!active) {
+      resetOverlayState();
+      return;
+    }
 
-    if (stage === "out") {
-      // entering overlay: after ENTER_MS, notify provider
-      enterTimer = window.setTimeout(() => {
-        emit("entered");
-        enterTimer = null;
-      }, ENTER_MS);
-    } else if (stage === "in") {
-      // exiting overlay: after EXIT_MS, notify provider
-      exitTimer = window.setTimeout(() => {
-        emit("exited");
-        exitTimer = null;
-      }, EXIT_MS);
+    switch (stage) {
+      case "out":
+        isExpanded.value = false;
+        isColorTransitioning.value = false;
+        displayedColor.value = props.currentColor;
+
+        requestAnimationFrame(() => {
+          isExpanded.value = true;
+        });
+        setTimeout(() => {
+          emit("entered");
+        }, props.outDurationMs);
+        break;
+
+      case "colorTransition":
+        isExpanded.value = true;
+        isColorTransitioning.value = true;
+        displayedColor.value = props.targetColor;
+        setTimeout(() => {
+          emit("colorTransitioned");
+        }, props.colorDurationMs);
+        break;
+
+      case "in":
+        isExpanded.value = true;
+        isColorTransitioning.value = false;
+        requestAnimationFrame(() => {
+          isExpanded.value = false;
+        });
+        setTimeout(() => {
+          emit("exited");
+        }, props.inDurationMs);
+        break;
     }
   },
   { immediate: true },
@@ -66,46 +110,28 @@ watch(
 
 onBeforeUnmount(() => clearTimers());
 
-const overlayStyle = computed(() => ({
-  backgroundColor: props.backgroundColor,
-}));
-
-// Morph behavior hardcoded: current shrinks to 0 on 'out', target starts at 0
-const currentStyle = computed(() => ({
-  width: props.stage === "out" ? "0px" : `${props.currentWidth}px`,
-  height: props.stage === "out" ? "0px" : `${props.currentHeight}px`,
-  opacity: 1,
-  transform: "translate(-50%, -50%)",
-}));
-
-const targetStyle = computed(() => ({
-  width: props.stage === "out" ? "0px" : `${props.targetWidth}px`,
-  height: props.stage === "out" ? "0px" : `${props.targetHeight}px`,
-  opacity: 1,
-  transform: "translate(-50%, -50%)",
-}));
+const overlayStyle = computed(
+  () =>
+    ({
+      backgroundColor: displayedColor.value,
+      transformOrigin: props.stage === "out" ? "top left" : "bottom right",
+      transform: isExpanded.value ? "scale(1)" : "scale(0)",
+      "--out-duration": `${props.outDurationMs}ms`,
+      "--color-duration": `${props.colorDurationMs}ms`,
+      "--in-duration": `${props.inDurationMs}ms`,
+      "--stage": props.stage === "out" ? "'out'" : "'in'",
+    }) as any,
+);
 </script>
 
 <template>
   <div
     v-if="active"
     class="sectionTransitionOverlay"
-    :style="overlayStyle"
     aria-hidden="true"
+    :data-stage="stage"
   >
-    <div
-      class="sectionTransitionOverlay__content sectionTransitionOverlay__content--current"
-      :style="currentStyle"
-    >
-      <div class="sectionTransitionOverlay__inner" v-html="currentHtml" />
-    </div>
-
-    <div
-      class="sectionTransitionOverlay__content sectionTransitionOverlay__content--target"
-      :style="targetStyle"
-    >
-      <div class="sectionTransitionOverlay__inner" v-html="targetHtml" />
-    </div>
+    <div class="sectionTransitionOverlay__rect" :style="overlayStyle" />
   </div>
 </template>
 
@@ -115,34 +141,33 @@ const targetStyle = computed(() => ({
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  transition: background-color 320ms ease;
   overflow: hidden;
+}
 
-  &__content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    overflow: hidden;
-    transition:
-      width 320ms ease,
-      height 320ms ease,
-      opacity 220ms ease,
-      transform 320ms ease;
-    will-change: width, height, opacity, transform;
-  }
+.sectionTransitionOverlay__rect {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  will-change: transform, background-color;
+}
 
-  &__content--current {
-    opacity: 1;
-  }
+/* Stage "out": transform first, then background-color with delay */
+.sectionTransitionOverlay[data-stage="out"] .sectionTransitionOverlay__rect {
+  transition:
+    transform var(--out-duration) cubic-bezier(0.2, 0.75, 0.2, 1) 0ms,
+    background-color var(--color-duration) ease var(--out-duration);
+}
 
-  &__content--target {
-    opacity: 1;
-  }
+/* Stage "colorTransition": just background-color */
+.sectionTransitionOverlay[data-stage="colorTransition"]
+  .sectionTransitionOverlay__rect {
+  transition: background-color var(--color-duration) ease 0ms;
+}
 
-  &__inner {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
+/* Stage "in": just transform */
+.sectionTransitionOverlay[data-stage="in"] .sectionTransitionOverlay__rect {
+  transition: transform var(--in-duration) cubic-bezier(0.2, 0.75, 0.2, 1) 0ms;
 }
 </style>

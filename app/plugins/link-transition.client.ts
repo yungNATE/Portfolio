@@ -7,7 +7,7 @@ export default defineNuxtPlugin(() => {
   }
 
   const container = document.createElement("div");
-  container.id = "link-tunnel-provider-root";
+  container.id = "link-transition-provider-root";
   document.body.appendChild(container);
 
   render(createVNode(LinkTransitionProvider), container);
