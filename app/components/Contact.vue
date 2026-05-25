@@ -2,82 +2,89 @@
   <section class="contact" aria-labelledby="contact-title">
     <h2 id="contact-title">Me contacter</h2>
 
-    <form
-      name="contact"
-      method="POST"
-      data-netlify="true"
-      netlify-honeypot="bot-field"
-      @submit.prevent="onSubmit"
-      novalidate
-      class="contactForm"
-    >
-      <input type="hidden" name="form-name" value="contact" />
+    <div class="contactLayout">
+      <form
+        name="contact"
+        method="POST"
+        data-netlify="true"
+        netlify-honeypot="bot-field"
+        @submit.prevent="onSubmit"
+        novalidate
+        class="contactForm"
+        :class="{ 'contactForm--hidden': sent || isSending }"
+      >
+        <input type="hidden" name="form-name" value="contact" />
 
-      <!-- honeypot -->
-      <p class="sr-only">
-        <label
-          >Ne remplissez pas ceci
-          <input name="bot-field" v-model="botField" autocomplete="off"
-        /></label>
-      </p>
+        <!-- honeypot -->
+        <p class="sr-only">
+          <label
+            >Ne remplissez pas ceci
+            <input name="bot-field" v-model="botField" autocomplete="off"
+          /></label>
+        </p>
 
-      <div class="grid">
-        <label class="field">
-          <input
-            type="text"
-            name="name"
-            v-model="form.name"
-            required
-            autocomplete="name"
-            :aria-invalid="!!errors.name"
-          />
-          <span class="floating">Nom</span>
-          <span class="error" v-if="errors.name">{{ errors.name }}</span>
-        </label>
+        <div class="grid">
+          <label class="field">
+            <input
+              type="text"
+              name="name"
+              v-model="form.name"
+              required
+              autocomplete="name"
+              :aria-invalid="!!errors.name"
+            />
+            <span class="floating">Nom</span>
+            <span class="error" v-if="errors.name">{{ errors.name }}</span>
+          </label>
 
-        <label class="field">
-          <input
-            type="email"
-            name="email"
-            v-model="form.email"
-            required
-            autocomplete="email"
-            :aria-invalid="!!errors.email"
-          />
-          <span class="floating">Email</span>
-          <span class="error" v-if="errors.email">{{ errors.email }}</span>
-        </label>
+          <label class="field">
+            <input
+              type="email"
+              name="email"
+              v-model="form.email"
+              required
+              autocomplete="email"
+              :aria-invalid="!!errors.email"
+            />
+            <span class="floating">Email</span>
+            <span class="error" v-if="errors.email">{{ errors.email }}</span>
+          </label>
 
-        <label class="field full textarea">
-          <textarea
-            name="message"
-            v-model="form.message"
-            rows="6"
-            required
-            :aria-invalid="!!errors.message"
-          ></textarea>
-          <span class="floating">Message</span>
-          <span class="error" v-if="errors.message">{{ errors.message }}</span>
-        </label>
-      </div>
-
-      <div class="actions">
-        <button type="submit" class="a mail" :disabled="isSending">
-          <span v-if="!isSending">Envoyer</span>
-          <span v-else>Envoi…</span>
-        </button>
-
-        <div class="feedback">
-          <p class="success" v-if="sent">Merci — message envoyé !</p>
-          <p class="error" v-if="submitError">{{ submitError }}</p>
+          <label class="field full textarea">
+            <textarea
+              name="message"
+              v-model="form.message"
+              rows="6"
+              required
+              :aria-invalid="!!errors.message"
+            ></textarea>
+            <span class="floating">Message</span>
+            <span class="error" v-if="errors.message">{{
+              errors.message
+            }}</span>
+          </label>
         </div>
-      </div>
-    </form>
+
+        <div class="actions">
+          <button type="submit" class="a mail" :disabled="isSending">
+            <span v-if="!isSending">Envoyer</span>
+            <span v-else>Envoi…</span>
+          </button>
+
+          <div class="feedback">
+            <p class="success" v-if="sent">Merci — message envoyé !</p>
+            <p class="error" v-if="submitError">{{ submitError }}</p>
+          </div>
+        </div>
+      </form>
+
+      <Main :state="handState" />
+    </div>
   </section>
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 
 interface FormModel {
   name: string;
@@ -101,6 +108,27 @@ const isSending = ref(false);
 const sent = ref(false);
 const submitError = ref("");
 
+const hasTypedContent = computed(() =>
+  [form.name, form.email, form.message].some(
+    (value) => value.trim().length > 0,
+  ),
+);
+
+const hasValidationErrors = computed(
+  () =>
+    hasTypedContent.value &&
+    Boolean(errors.name || errors.email || errors.message),
+);
+
+const handState = computed(() => {
+  if (isSending.value) return "sending";
+  if (sent.value) return "success";
+  if (submitError.value) return "error";
+  if (hasValidationErrors.value) return "warning";
+  if (hasTypedContent.value) return "active";
+  return "idle";
+});
+
 function validate() {
   errors.name = form.name.trim() ? "" : "Le nom est requis.";
   errors.email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email || "")
@@ -112,6 +140,15 @@ function validate() {
       : "Message trop court (≥10 caractères).";
   return !Object.values(errors).some(Boolean);
 }
+
+// Real-time validation on input
+watch(
+  () => [form.name, form.email, form.message],
+  () => {
+    validate();
+  },
+  { deep: true },
+);
 
 function encode(data: Record<string, string>) {
   return Object.keys(data)
@@ -184,10 +221,20 @@ async function onSubmit() {
   }
 }
 
+.contactLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 1.4rem;
+  align-items: end;
+}
+
 .contactForm {
   display: grid;
   gap: 1rem;
   animation: fadeInUp 0.45s both ease;
+  transition:
+    opacity 0.3s ease,
+    pointer-events 0.3s ease;
 }
 
 .grid {
@@ -274,8 +321,18 @@ async function onSubmit() {
 }
 
 @media (max-width: 720px) {
+  .contactLayout {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
   .grid {
     grid-template-columns: 1fr;
   }
+}
+
+.contactForm--hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 </style>
