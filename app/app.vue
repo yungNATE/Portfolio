@@ -47,9 +47,8 @@ onBeforeUnmount(() => {
       <Intro />
     </section>
 
-    <section data-color="#ff0073">
+    <section id="work" data-color="#ff0073">
       <Wip />
-      <a href="#contact" class="anchor">Discutons</a>
     </section>
 
     <section id="contact" data-color="#f2e8e5">

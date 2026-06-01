@@ -32,6 +32,7 @@
               required
               autocomplete="name"
               :aria-invalid="!!errors.name"
+              :class="{ active: form.name, 'has-error': errors.name }"
             />
             <span class="floating">Nom</span>
             <span class="error" v-if="errors.name">{{ errors.name }}</span>
@@ -45,6 +46,7 @@
               required
               autocomplete="email"
               :aria-invalid="!!errors.email"
+              :class="{ active: form.email, 'has-error': errors.email }"
             />
             <span class="floating">Email</span>
             <span class="error" v-if="errors.email">{{ errors.email }}</span>
@@ -57,6 +59,7 @@
               rows="6"
               required
               :aria-invalid="!!errors.message"
+              :class="{ active: form.message, 'has-error': errors.message }"
             ></textarea>
             <span class="floating">Message</span>
             <span class="error" v-if="errors.message">{{
@@ -66,7 +69,12 @@
         </div>
 
         <div class="actions">
-          <button type="submit" class="a mail" :disabled="isSending">
+          <button
+            v-if="!hasValidationErrors && isFilled"
+            type="submit"
+            class="a mail"
+            :disabled="isSending"
+          >
             <span v-if="!isSending">Envoyer</span>
             <span v-else>Envoi…</span>
           </button>
@@ -84,21 +92,17 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, reactive, ref, watch } from "vue";
 
 interface FormModel {
   name: string;
   email: string;
-  projectType: string;
-  website: string;
   message: string;
 }
 
 const form = reactive<FormModel>({
   name: "",
   email: "",
-  projectType: "",
-  website: "",
   message: "",
 });
 
@@ -107,10 +111,20 @@ const errors = reactive<Record<string, string>>({});
 const isSending = ref(false);
 const sent = ref(false);
 const submitError = ref("");
+const validationTimers = new Map<
+  keyof Pick<FormModel, "name" | "email" | "message">,
+  number
+>();
 
 const hasTypedContent = computed(() =>
   [form.name, form.email, form.message].some(
     (value) => value.trim().length > 0,
+  ),
+);
+
+const isFilled = computed(() =>
+  [form.name, form.email, form.message].every(
+    (value) => value.trim().length !== 0,
   ),
 );
 
@@ -120,35 +134,110 @@ const hasValidationErrors = computed(
     Boolean(errors.name || errors.email || errors.message),
 );
 
+const containsInsults = computed(() => {
+  const insults = ["connard", "idiot", "stupide", "imbécile"];
+  const content = `${form.name} ${form.email} ${form.message}`.toLowerCase();
+  return insults.some((insult) => content.includes(insult));
+});
+
 const handState = computed(() => {
   if (isSending.value) return "sending";
   if (sent.value) return "success";
   if (submitError.value) return "error";
+  if (containsInsults.value) return "insult";
   if (hasValidationErrors.value) return "warning";
   if (hasTypedContent.value) return "active";
   return "idle";
 });
 
+function isEmptyField(value: string) {
+  return value.trim().length === 0;
+}
+
+function validateName(name: string) {
+  return name.trim() ? "" : "Le nom est requis.";
+}
+
+function validateEmail(email: string) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) ? "" : "Email invalide.";
+}
+
+function validateMessage(message: string) {
+  return message.trim().length < 10
+    ? "Message trop court (≥10 caractères)."
+    : "";
+}
+
+function validateField(field: String) {
+  if (containsInsults.value) {
+    errors.message = "Non mais !";
+    return;
+  }
+
+  if (field === "name") {
+    errors.name = !isEmptyField(form.name) ? validateName(form.name) : "";
+    return;
+  }
+
+  if (field === "email") {
+    errors.email = !isEmptyField(form.email) ? validateEmail(form.email) : "";
+    return;
+  }
+
+  if (field === "message") {
+    errors.message = !isEmptyField(form.message)
+      ? validateMessage(form.message)
+      : "";
+    return;
+  }
+}
+
+function validateFields(fields: Array<String>) {
+  fields.forEach((field) => validateField(field));
+}
+
 function validate() {
-  errors.name = form.name.trim() ? "" : "Le nom est requis.";
-  errors.email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email || "")
-    ? ""
-    : "Email invalide.";
-  errors.message =
-    form.message.trim().length >= 10
-      ? ""
-      : "Message trop court (≥10 caractères).";
+  validateFields(["name", "email", "message"]);
   return !Object.values(errors).some(Boolean);
 }
 
-// Real-time validation on input
+function scheduleValidation(field: "name" | "email" | "message") {
+  const existingTimer = validationTimers.get(field);
+
+  if (existingTimer !== undefined) {
+    window.clearTimeout(existingTimer);
+  }
+
+  validationTimers.set(
+    field,
+    window.setTimeout(() => {
+      validateField(field);
+      validationTimers.delete(field);
+    }, 1),
+  );
+}
+
 watch(
-  () => [form.name, form.email, form.message],
-  () => {
-    validate();
-  },
-  { deep: true },
+  () => form.name,
+  () => scheduleValidation("name"),
 );
+watch(
+  () => form.email,
+  () => scheduleValidation("email"),
+);
+watch(
+  () => form.message,
+  () => scheduleValidation("message"),
+);
+
+onBeforeUnmount(() => {
+  for (const timer of validationTimers.values()) {
+    window.clearTimeout(timer);
+  }
+
+  validationTimers.clear();
+});
 
 function encode(data: Record<string, string>) {
   return Object.keys(data)
@@ -172,8 +261,6 @@ async function onSubmit() {
     "form-name": "contact",
     name: form.name,
     email: form.email,
-    projectType: form.projectType,
-    website: form.website,
     message: form.message,
   };
 
@@ -189,8 +276,6 @@ async function onSubmit() {
       // clear
       form.name = "";
       form.email = "";
-      form.projectType = "";
-      form.website = "";
       form.message = "";
     } else {
       submitError.value = "Erreur serveur, réessayez plus tard.";
@@ -273,23 +358,44 @@ async function onSubmit() {
   .floating {
     position: absolute;
     left: 14px;
-    top: 12px;
+    bottom: calc(100% - 16px);
+    transform: translateY(100%);
     pointer-events: none;
     color: #9aa4b2;
+    background: var(--section-color);
+    padding-inline: 4px;
+    height: fit-content;
     font-size: 0.88rem;
     transform-origin: left top;
+    $duration: 0.18s;
+    $type: ease;
     transition:
-      transform 0.18s ease,
-      top 0.18s ease,
-      font-size 0.18s ease,
-      color 0.18s ease;
+      transform $duration $type,
+      bottom $duration $type,
+      font-size $duration $type,
+      color $duration $type;
   }
 
   /* underline focus */
-  input:focus,
-  textarea:focus {
-    box-shadow: 0 6px 18px rgba(80, 110, 255, 0.06);
-    border-color: rgba(100, 140, 255, 0.9);
+  input,
+  textarea {
+    &:focus {
+      box-shadow: 0 6px 18px rgba(80, 110, 255, 0.06);
+      border-color: rgba(100, 140, 255, 0.9);
+    }
+
+    &:focus,
+    &.active {
+      & + .floating {
+        color: rgba(80, 110, 255, 0.9);
+        bottom: 100%;
+        transform: translateY(50%);
+      }
+
+      &.has-error + .floating {
+        color: #ff6b6b;
+      }
+    }
   }
 
   .error {
@@ -301,9 +407,6 @@ async function onSubmit() {
 
 .field.full {
   grid-column: 1 / -1;
-}
-.field.textarea .floating {
-  top: 14px;
 }
 
 .actions {

@@ -1,72 +1,104 @@
 <template>
-  <aside class="handStage" aria-hidden="true">
-    <div class="hand" :class="`hand--${state}`">
-      <div class="topFingers" aria-hidden="true">
+  <aside ref="rootEl" class="handStage" aria-hidden="true">
+    <div
+      class="handMirror"
+      :class="{ 'handMirror--left': props.sens === 'gauche' }"
+    >
+      <div
+        :ref="(el) => setHandRef(el as HTMLElement | null)"
+        class="hand"
+        :data-state="props.state"
+      >
+        <div class="topFingers" aria-hidden="true">
+          <div
+            v-for="(finger, i) in topFingersData"
+            :key="i"
+            :ref="(el) => setTopFingerRef(el as HTMLElement | null, i + 1)"
+            class="finger finger--top"
+            :class="{ 'finger--pointing': i === 0 }"
+            :data-index="i + 1"
+            :style="{
+              '--phalanxBaseHeight': `${finger.phalanxBaseHeight}px`,
+              '--fold-topOffset': `${finger.topOffset * -3}px`,
+            }"
+          >
+            <div class="phalanx square phalanx--tip"></div>
+            <div class="phalanx square phalanx--base"></div>
+          </div>
+        </div>
+
         <div
-          v-for="(finger, i) in topFingers"
-          :key="i"
-          class="finger finger--top"
-          :class="{
-            'finger--pointing': i === 0,
-            'finger--folded':
-              i !== 0 && (state === 'warning' || state === 'error'),
-          }"
+          :ref="(el) => setTopFingerRef(el as HTMLElement | null, 0)"
+          class="finger finger--thumb"
+          :data-index="0"
           :style="{
-            '--phalanxBaseHeight': `${finger.phalanxBaseHeight}px`,
-            '--fold-delay': `${160 / (i + 1)}ms`,
-            '--fold-topOffset': `${(i + 1) * 3}px`,
+            '--phalanxBaseHeight': `${thumbData.phalanxBaseHeight}px`,
           }"
         >
-          <div
-            class="phalanx square phalanx--tip"
-            :class="{
-              'phalanx--folded': state === 'warning' || state === 'error',
-            }"
-          ></div>
+          <div class="phalanx square phalanx--tip"></div>
           <div class="phalanx square phalanx--base"></div>
         </div>
-      </div>
 
-      <div
-        class="finger finger--thumb"
-        :style="{
-          '--phalanxBaseHeight': '35px',
-        }"
-      >
-        <div class="phalanx square phalanx--tip"></div>
-        <div class="phalanx square phalanx--base"></div>
+        <div class="palm square"></div>
       </div>
-
-      <div class="palm square"></div>
     </div>
   </aside>
 </template>
 
 <script lang="ts" setup>
+import {
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  toRef,
+  type VNodeRef,
+} from "vue";
+import {
+  useHandAnimation,
+  type FingerData,
+} from "../composables/useHandAnimation";
+
 type HandState =
   | "idle"
   | "active"
   | "warning"
+  | "insult"
   | "sending"
   | "success"
   | "error";
+type HandSens = "droite" | "gauche";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     state?: HandState;
+    sens?: HandSens;
   }>(),
-  {
-    state: "idle",
-  },
+  { state: "idle", sens: "droite" },
 );
 
 const multiplicator = 56;
-const topFingers = [
-  { phalanxBaseHeight: 0.9 * multiplicator },
-  { phalanxBaseHeight: 1 * multiplicator },
-  { phalanxBaseHeight: 0.9 * multiplicator },
-  { phalanxBaseHeight: 0.7 * multiplicator },
+const thumbData = { phalanxBaseHeight: 40, topOffset: 0 } as const;
+const topFingersData = [
+  { phalanxBaseHeight: 0.9 * multiplicator, topOffset: 0 },
+  { phalanxBaseHeight: 1 * multiplicator, topOffset: 1 },
+  { phalanxBaseHeight: 0.9 * multiplicator, topOffset: 0 },
+  { phalanxBaseHeight: 0.7 * multiplicator, topOffset: -1 },
 ] as const;
+const fingersData: readonly FingerData[] = [thumbData, ...topFingersData];
+
+const stateRef = toRef(props, "state");
+
+const { rootEl, setTopFingerRef, mount, destroy, setHandRef } =
+  useHandAnimation(stateRef as any, fingersData, multiplicator);
+
+onMounted(async () => {
+  await nextTick();
+  mount(rootEl.value);
+});
+
+onBeforeUnmount(() => {
+  destroy();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -84,52 +116,27 @@ const topFingers = [
   background: #050505;
 }
 
+.handMirror {
+  transform: scaleX(1);
+}
+
+.handMirror--left {
+  transform: scaleX(-1);
+}
+
 .hand {
-  transform-origin: 55% 100%;
   transform: translateY(0px) rotateZ(0deg);
-  animation: handIdleFloat 2.8s ease-in-out infinite;
   margin-top: 100px;
   width: fit-content;
-
-  &--active {
-    animation-duration: 1.9s;
-
-    .finger--top {
-      --finger-x: -16deg;
-    }
-  }
-
-  &--warning,
-  &--error {
-    .finger--pointing {
-      animation: fingerNo 0.72s ease-in-out infinite;
-    }
-  }
-
-  &--sending {
-    animation: handSendPulse 0.75s ease-in-out infinite;
-
-    .finger--top {
-      animation: sendingTap 0.7s ease-in-out infinite;
-    }
-  }
-
-  &--success {
-    .finger--thumb {
-      --finger-x: -8deg;
-      --finger-z: -70deg;
-    }
-
-    .finger--pointing {
-      --finger-x: -26deg;
-    }
-  }
+  will-change: transform;
 }
 
 .palm {
   width: 96px;
   aspect-ratio: 0.9;
-  border-radius: 21%;
+  border-radius: 15%;
+  border-bottom-right-radius: 45%;
+  border-bottom-left-radius: 30%;
 }
 
 .topFingers {
@@ -140,7 +147,6 @@ const topFingers = [
   justify-content: space-around;
   align-items: flex-end;
   pointer-events: none;
-  padding-inline: 5px;
 }
 
 .finger {
@@ -148,20 +154,19 @@ const topFingers = [
   display: flex;
   flex-direction: column;
   align-items: center;
-  transform-origin: 50% 100%;
   --finger-x: -10deg;
   --finger-z: 0deg;
   transform: rotateX(var(--finger-x)) rotateZ(var(--finger-z));
-  transition: transform 0.28s ease;
+  will-change: transform;
 
   &--top {
     position: relative;
-    top: 0;
+    top: var(--fold-topOffset);
   }
 
   &--thumb {
-    right: 91%;
-    bottom: 32%;
+    right: 82%;
+    bottom: 29%;
     --finger-x: -22deg;
     --finger-z: -38deg;
   }
@@ -172,37 +177,21 @@ const topFingers = [
   height: var(--phalanxBaseHeight);
   transform: translateY(6px);
   border-radius: 5px;
+  will-change: height;
 
   &--tip {
-    transform-origin: 50% 100%;
     height: calc(var(--phalanxBaseHeight) * 0.8);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
   }
-}
-.finger--folded {
-  $totalAnimationDuration: 1000ms;
-  $classicFoldDuration: $totalAnimationDuration / 3;
-  $fingerFoldedDuration: 80ms;
-  $phalanxBaseDuration: 160ms;
 
-  top: var(--fold-topOffset);
-  transition: top $classicFoldDuration ease-in;
-  transition-delay: calc(var(--fold-delay) + $classicFoldDuration * 1);
+  &--base {
+    // border-top-left-radius: 0px;
+    // border-top-right-radius: 0px;
+  }
 
-  .phalanx {
-    &--tip {
-      height: 0;
-      transition: height $classicFoldDuration ease-in;
-      transition-delay: var(--fold-delay);
-    }
-
-    &--base {
-      position: relative;
-      height: 22px;
-      transition:
-        height $classicFoldDuration ease-in,
-        top $classicFoldDuration ease-in;
-      transition-delay: calc(var(--fold-delay) + $classicFoldDuration * 0.5);
-    }
+  .finger--thumb & {
+    width: 22px;
   }
 }
 
@@ -216,46 +205,6 @@ const topFingers = [
     right: auto;
     left: 50%;
     transform: translateX(-50%) scale(0.82);
-  }
-}
-
-@keyframes handIdleFloat {
-  0%,
-  100% {
-    transform: translateY(0px) rotateZ(0deg);
-  }
-  50% {
-    transform: translateY(-7px) rotateZ(0.6deg);
-  }
-}
-
-@keyframes fingerNo {
-  0%,
-  100% {
-    transform: rotateX(-28deg) rotateZ(-11deg);
-  }
-  50% {
-    transform: rotateX(-28deg) rotateZ(11deg);
-  }
-}
-
-@keyframes handSendPulse {
-  0%,
-  100% {
-    transform: translateY(0px) rotateZ(0deg);
-  }
-  50% {
-    transform: translateY(-6px) rotateZ(-1.2deg);
-  }
-}
-
-@keyframes sendingTap {
-  0%,
-  100% {
-    transform: rotateX(-8deg) rotateZ(0deg);
-  }
-  50% {
-    transform: rotateX(22deg) rotateZ(0deg);
   }
 }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import SectionColorOverlay from "./SectionColorOverlay.vue";
+import { getSectionColor } from "~/utils/getSectionColor";
 
 type TransitionStage = "out" | "colorTransition" | "in";
 type LinkKind = "internal" | "external";
@@ -21,24 +22,6 @@ function getLinkKind(href: string): LinkKind {
   if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return "internal";
   // Fallback: external
   return "external";
-}
-
-function getSectionColor(section: HTMLElement | null) {
-  if (!section) {
-    return "#000000";
-  }
-
-  const dataColor = section.dataset.color?.trim();
-
-  if (dataColor) {
-    return dataColor;
-  }
-
-  const cssColor = getComputedStyle(section)
-    .getPropertyValue("--section-color")
-    .trim();
-
-  return cssColor || "#000000";
 }
 
 function startSectionTransition(
