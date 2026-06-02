@@ -115,7 +115,7 @@
           <input type="hidden" name="form-name" value="contact" />
           <input type="text" name="name" :value="form.name" />
           <input type="email" name="email" :value="form.email" />
-          <textarea name="message">{{ form.message }}</textarea>
+          <textarea name="message" :value="form.message"></textarea>
           <input
             type="text"
             name="bot-field"
@@ -152,7 +152,6 @@ const isSending = ref(false);
 const sent = ref(false);
 const submitError = ref("");
 const netlifyFormRef = ref<HTMLFormElement | null>(null);
-const hasFrameLoaded = ref(false);
 const awaitingNetlifyResponse = ref(false);
 const submitTimeout = ref<number | null>(null);
 const validationTimers = new Map<
@@ -289,11 +288,6 @@ onBeforeUnmount(() => {
 });
 
 function onSubmitFrameLoad() {
-  if (!hasFrameLoaded.value) {
-    hasFrameLoaded.value = true;
-    return;
-  }
-
   if (!awaitingNetlifyResponse.value) {
     return;
   }
