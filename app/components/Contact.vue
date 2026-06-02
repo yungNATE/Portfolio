@@ -14,6 +14,7 @@
         <form
           name="contact"
           method="POST"
+          action="/"
           data-netlify="true"
           netlify-honeypot="bot-field"
           @submit.prevent="onSubmit"
@@ -285,6 +286,8 @@ async function onSubmit() {
     });
 
     if (res.ok) {
+      console.log("Form submission successful:", res);
+
       sent.value = true;
       // clear
       form.name = "";
@@ -294,6 +297,7 @@ async function onSubmit() {
       submitError.value = "Erreur serveur, réessayez plus tard.";
     }
   } catch (e) {
+    console.error("Form submission error:", e);
     submitError.value = "Impossible d'envoyer le message.";
   } finally {
     isSending.value = false;
