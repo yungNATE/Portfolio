@@ -12,8 +12,7 @@
           </p>
         </div>
         <form
-          :name="FORM_NAME"
-          action="/"
+          name="contact"
           method="POST"
           data-netlify="true"
           netlify-honeypot="bot-field"
@@ -24,7 +23,7 @@
             'contactForm--hidden': sent || isSending,
           }"
         >
-          <input type="hidden" name="form-name" :value="FORM_NAME" />
+          <input type="hidden" name="form-name" value="contact" />
 
           <!-- honeypot -->
           <p class="sr-only">
@@ -118,8 +117,6 @@ const form = reactive<FormModel>({
   email: "",
   message: "",
 });
-
-const FORM_NAME = "contact";
 
 const botField = ref("");
 const errors = reactive<Record<string, string>>({});
@@ -273,7 +270,7 @@ async function onSubmit() {
   isSending.value = true;
 
   const payload: Record<string, string> = {
-    "form-name": FORM_NAME,
+    "form-name": "contact",
     "bot-field": botField.value,
     name: form.name,
     email: form.email,
