@@ -12,11 +12,6 @@
           </p>
         </div>
         <form
-          name="contact"
-          method="POST"
-          action="/"
-          data-netlify="true"
-          netlify-honeypot="bot-field"
           @submit.prevent="onSubmit"
           novalidate
           class="contactForm"
@@ -24,8 +19,6 @@
             'contactForm--hidden': sent || isSending,
           }"
         >
-          <input type="hidden" name="form-name" value="contact" />
-
           <!-- honeypot -->
           <p class="sr-only">
             <label
@@ -96,6 +89,40 @@
             </div>
           </div>
         </form>
+
+        <!-- Bridge form: native Netlify submission path, keeps UI fully client-side -->
+        <iframe
+          name="netlify-submit-frame"
+          title="netlify-submit-frame"
+          class="netlifyBridge"
+          aria-hidden="true"
+          tabindex="-1"
+          @load="onSubmitFrameLoad"
+        ></iframe>
+
+        <form
+          ref="netlifyFormRef"
+          name="contact"
+          method="POST"
+          action="/"
+          data-netlify="true"
+          netlify-honeypot="bot-field"
+          target="netlify-submit-frame"
+          class="netlifyBridge"
+          aria-hidden="true"
+          tabindex="-1"
+        >
+          <input type="hidden" name="form-name" value="contact" />
+          <input type="text" name="name" :value="form.name" />
+          <input type="email" name="email" :value="form.email" />
+          <textarea name="message">{{ form.message }}</textarea>
+          <input
+            type="text"
+            name="bot-field"
+            :value="botField"
+            autocomplete="off"
+          />
+        </form>
       </div>
       <aside aria-hidden="true">
         <Main :state="handState" />
@@ -124,6 +151,10 @@ const errors = reactive<Record<string, string>>({});
 const isSending = ref(false);
 const sent = ref(false);
 const submitError = ref("");
+const netlifyFormRef = ref<HTMLFormElement | null>(null);
+const hasFrameLoaded = ref(false);
+const awaitingNetlifyResponse = ref(false);
+const submitTimeout = ref<number | null>(null);
 const validationTimers = new Map<
   keyof Pick<FormModel, "name" | "email" | "message">,
   number
@@ -249,13 +280,37 @@ onBeforeUnmount(() => {
     window.clearTimeout(timer);
   }
 
+  if (submitTimeout.value !== null) {
+    window.clearTimeout(submitTimeout.value);
+    submitTimeout.value = null;
+  }
+
   validationTimers.clear();
 });
 
-function encode(data: Record<string, string>) {
-  return Object.keys(data)
-    .map((k) => encodeURIComponent(k) + "=" + encodeURIComponent(data[k] || ""))
-    .join("&");
+function onSubmitFrameLoad() {
+  if (!hasFrameLoaded.value) {
+    hasFrameLoaded.value = true;
+    return;
+  }
+
+  if (!awaitingNetlifyResponse.value) {
+    return;
+  }
+
+  awaitingNetlifyResponse.value = false;
+
+  if (submitTimeout.value !== null) {
+    window.clearTimeout(submitTimeout.value);
+    submitTimeout.value = null;
+  }
+
+  isSending.value = false;
+  sent.value = true;
+  form.name = "";
+  form.email = "";
+  form.message = "";
+  botField.value = "";
 }
 
 async function onSubmit() {
@@ -269,38 +324,41 @@ async function onSubmit() {
   }
 
   isSending.value = true;
+  awaitingNetlifyResponse.value = true;
 
-  const payload: Record<string, string> = {
-    "form-name": "contact",
-    "bot-field": botField.value,
-    name: form.name,
-    email: form.email,
-    message: form.message,
-  };
+  if (submitTimeout.value !== null) {
+    window.clearTimeout(submitTimeout.value);
+  }
+
+  submitTimeout.value = window.setTimeout(() => {
+    if (!awaitingNetlifyResponse.value) {
+      return;
+    }
+
+    awaitingNetlifyResponse.value = false;
+    isSending.value = false;
+    submitError.value = "Réponse Netlify introuvable. Réessayez.";
+  }, 15000);
 
   try {
-    const res = await fetch("/", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: encode(payload),
-    });
+    if (!netlifyFormRef.value) {
+      throw new Error("Formulaire Netlify indisponible.");
+    }
 
-    if (res.ok) {
-      console.log("Form submission successful:", res);
-
-      sent.value = true;
-      // clear
-      form.name = "";
-      form.email = "";
-      form.message = "";
+    if (typeof netlifyFormRef.value.requestSubmit === "function") {
+      netlifyFormRef.value.requestSubmit();
     } else {
-      submitError.value = "Erreur serveur, réessayez plus tard.";
+      netlifyFormRef.value.submit();
     }
   } catch (e) {
     console.error("Form submission error:", e);
-    submitError.value = "Impossible d'envoyer le message.";
-  } finally {
+    awaitingNetlifyResponse.value = false;
+    if (submitTimeout.value !== null) {
+      window.clearTimeout(submitTimeout.value);
+      submitTimeout.value = null;
+    }
     isSending.value = false;
+    submitError.value = "Impossible d'envoyer le message.";
   }
 }
 </script>
@@ -442,5 +500,17 @@ aside {
 .contactForm--hidden {
   opacity: 0;
   pointer-events: none;
+}
+
+.netlifyBridge {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 </style>
