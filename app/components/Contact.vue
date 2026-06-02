@@ -11,8 +11,9 @@
             <b>Je vous répondrai dès que possible !</b>
           </p>
         </div>
+        <!-- @submit.prevent="onSubmit" -->
+        <!-- action="/" -->
         <form
-          @submit.prevent="onSubmit"
           data-netlify="true"
           data-netlify-honeypot="bot-field"
           name="contact"
