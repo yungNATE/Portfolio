@@ -12,7 +12,8 @@
           </p>
         </div>
         <form
-          name="contact"
+          :name="FORM_NAME"
+          action="/"
           method="POST"
           data-netlify="true"
           netlify-honeypot="bot-field"
@@ -23,7 +24,7 @@
             'contactForm--hidden': sent || isSending,
           }"
         >
-          <input type="hidden" name="form-name" value="contact" />
+          <input type="hidden" name="form-name" :value="FORM_NAME" />
 
           <!-- honeypot -->
           <p class="sr-only">
@@ -118,6 +119,8 @@ const form = reactive<FormModel>({
   message: "",
 });
 
+const FORM_NAME = "contact";
+
 const botField = ref("");
 const errors = reactive<Record<string, string>>({});
 const isSending = ref(false);
@@ -181,7 +184,7 @@ function validateMessage(message: string) {
     : "";
 }
 
-function validateField(field: String) {
+function validateField(field: keyof FormModel) {
   if (containsInsults.value) {
     errors.message = "Non mais !";
     return;
@@ -205,7 +208,7 @@ function validateField(field: String) {
   }
 }
 
-function validateFields(fields: Array<String>) {
+function validateFields(fields: Array<keyof FormModel>) {
   fields.forEach((field) => validateField(field));
 }
 
@@ -270,7 +273,8 @@ async function onSubmit() {
   isSending.value = true;
 
   const payload: Record<string, string> = {
-    "form-name": "contact",
+    "form-name": FORM_NAME,
+    "bot-field": botField.value,
     name: form.name,
     email: form.email,
     message: form.message,
@@ -323,9 +327,6 @@ async function onSubmit() {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-}
-
-.contactForm {
 }
 
 .grid {
@@ -426,9 +427,6 @@ async function onSubmit() {
   margin-top: 0.6rem;
 }
 
-.feedback {
-  // min-width: 220px;
-}
 .success {
   color: #2ecc71;
 }
@@ -438,14 +436,6 @@ aside {
   justify-content: center;
   align-items: center;
   padding-inline: 70px;
-}
-
-@media (max-width: 720px) {
-  .formLayout {
-  }
-
-  .grid {
-  }
 }
 
 .contactForm--hidden {
