@@ -15,6 +15,7 @@
           @submit.prevent="onSubmit"
           data-netlify="true"
           data-netlify-honeypot="bot-field"
+          name="contact"
           novalidate
           class="contactForm"
           :class="{
