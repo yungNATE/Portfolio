@@ -1,92 +1,104 @@
 <template>
   <section class="contact" aria-labelledby="contact-title">
-    <h2 id="contact-title">Me contacter</h2>
-
     <div class="contactLayout">
-      <form
-        name="contact"
-        method="POST"
-        data-netlify="true"
-        netlify-honeypot="bot-field"
-        @submit.prevent="onSubmit"
-        novalidate
-        class="contactForm"
-        :class="{ 'contactForm--hidden': sent || isSending }"
-      >
-        <input type="hidden" name="form-name" value="contact" />
-
-        <!-- honeypot -->
-        <p class="sr-only">
-          <label
-            >Ne remplissez pas ceci
-            <input name="bot-field" v-model="botField" autocomplete="off"
-          /></label>
-        </p>
-
-        <div class="grid">
-          <label class="field">
-            <input
-              type="text"
-              name="name"
-              v-model="form.name"
-              required
-              autocomplete="name"
-              :aria-invalid="!!errors.name"
-              :class="{ active: form.name, 'has-error': errors.name }"
-            />
-            <span class="floating">Nom</span>
-            <span class="error" v-if="errors.name">{{ errors.name }}</span>
-          </label>
-
-          <label class="field">
-            <input
-              type="email"
-              name="email"
-              v-model="form.email"
-              required
-              autocomplete="email"
-              :aria-invalid="!!errors.email"
-              :class="{ active: form.email, 'has-error': errors.email }"
-            />
-            <span class="floating">Email</span>
-            <span class="error" v-if="errors.email">{{ errors.email }}</span>
-          </label>
-
-          <label class="field full textarea">
-            <textarea
-              name="message"
-              v-model="form.message"
-              rows="6"
-              required
-              :aria-invalid="!!errors.message"
-              :class="{ active: form.message, 'has-error': errors.message }"
-            ></textarea>
-            <span class="floating">Message</span>
-            <span class="error" v-if="errors.message">{{
-              errors.message
-            }}</span>
-          </label>
+      <div class="formLayout">
+        <div class="header">
+          <h2 id="contact-title">Me contacter</h2>
+          <p>
+            Vous avez une question, une proposition de projet ou vous voulez
+            simplement dire bonjour ? N'hésitez pas à m'envoyer un message en
+            remplissant le formulaire ci-contre.
+            <b>Je vous répondrai dès que possible !</b>
+          </p>
         </div>
+        <form
+          name="contact"
+          method="POST"
+          data-netlify="true"
+          netlify-honeypot="bot-field"
+          @submit.prevent="onSubmit"
+          novalidate
+          class="contactForm"
+          :class="{
+            'contactForm--hidden': sent || isSending,
+          }"
+        >
+          <input type="hidden" name="form-name" value="contact" />
 
-        <div class="actions">
-          <button
-            v-if="!hasValidationErrors && isFilled"
-            type="submit"
-            class="a mail"
-            :disabled="isSending"
-          >
-            <span v-if="!isSending">Envoyer</span>
-            <span v-else>Envoi…</span>
-          </button>
+          <!-- honeypot -->
+          <p class="sr-only">
+            <label
+              >Remplissez ceci uniquement si vous êtes un robot
+              <input name="bot-field" v-model="botField" autocomplete="off"
+            /></label>
+          </p>
 
-          <div class="feedback">
-            <p class="success" v-if="sent">Merci — message envoyé !</p>
-            <p class="error" v-if="submitError">{{ submitError }}</p>
+          <div class="grid">
+            <label class="field">
+              <input
+                type="text"
+                name="name"
+                v-model="form.name"
+                required
+                autocomplete="name"
+                :aria-invalid="!!errors.name"
+                :class="{ active: form.name, 'has-error': errors.name }"
+              />
+              <span class="floating">Nom</span>
+              <span class="error" v-if="errors.name">{{ errors.name }}</span>
+            </label>
+
+            <label class="field">
+              <input
+                type="email"
+                name="email"
+                v-model="form.email"
+                required
+                autocomplete="email"
+                :aria-invalid="!!errors.email"
+                :class="{ active: form.email, 'has-error': errors.email }"
+              />
+              <span class="floating">Email</span>
+              <span class="error" v-if="errors.email">{{ errors.email }}</span>
+            </label>
+
+            <label class="field full textarea">
+              <textarea
+                name="message"
+                v-model="form.message"
+                rows="6"
+                required
+                :aria-invalid="!!errors.message"
+                :class="{ active: form.message, 'has-error': errors.message }"
+              ></textarea>
+              <span class="floating">Message</span>
+              <span class="error" v-if="errors.message">{{
+                errors.message
+              }}</span>
+            </label>
           </div>
-        </div>
-      </form>
 
-      <Main :state="handState" />
+          <div class="actions">
+            <button
+              v-if="!hasValidationErrors && isFilled"
+              type="submit"
+              class="a mail"
+              :disabled="isSending"
+            >
+              <span v-if="!isSending">Envoyer</span>
+              <span v-else>Envoi…</span>
+            </button>
+
+            <div class="feedback">
+              <p class="success" v-if="sent">Merci — message envoyé !</p>
+              <p class="error" v-if="submitError">{{ submitError }}</p>
+            </div>
+          </div>
+        </form>
+      </div>
+      <aside aria-hidden="true">
+        <Main :state="handState" />
+      </aside>
     </div>
   </section>
 </template>
@@ -290,48 +302,50 @@ async function onSubmit() {
 
 <style lang="scss" scoped>
 .contact {
-  max-width: 920px;
-  margin: 2rem auto;
+  margin: 2rem 10vw;
   padding: 1.6rem;
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.02),
     rgba(255, 255, 255, 0.01)
   );
-
-  h2 {
-    margin: 0 0 1rem 0;
-    font-size: 1.5rem;
-    letter-spacing: -0.02em;
-  }
 }
 
 .contactLayout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
-  gap: 1.4rem;
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+}
+
+.formLayout {
+  flex-basis: 710px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .contactForm {
-  display: grid;
-  gap: 1rem;
-  animation: fadeInUp 0.45s both ease;
-  transition:
-    opacity 0.3s ease,
-    pointer-events 0.3s ease;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.9rem;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .field {
   position: relative;
   display: flex;
   flex-direction: column;
+
+  &.full {
+    grid-column: 1 / -1;
+  }
 
   input[type="text"],
   input[type="email"],
@@ -405,10 +419,6 @@ async function onSubmit() {
   }
 }
 
-.field.full {
-  grid-column: 1 / -1;
-}
-
 .actions {
   display: flex;
   gap: 1rem;
@@ -417,20 +427,24 @@ async function onSubmit() {
 }
 
 .feedback {
-  min-width: 220px;
+  // min-width: 220px;
 }
 .success {
   color: #2ecc71;
 }
 
+aside {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-inline: 70px;
+}
+
 @media (max-width: 720px) {
-  .contactLayout {
-    grid-template-columns: 1fr;
-    gap: 0.4rem;
+  .formLayout {
   }
 
   .grid {
-    grid-template-columns: 1fr;
   }
 }
 

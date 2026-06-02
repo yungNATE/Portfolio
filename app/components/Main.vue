@@ -1,48 +1,48 @@
 <template>
-  <aside ref="rootEl" class="handStage" aria-hidden="true">
+  <div
+    ref="rootEl"
+    class="handContainer"
+    :class="{ handMirror: props.sens === 'gauche' }"
+    aria-hidden="true"
+  >
     <div
-      class="handMirror"
-      :class="{ 'handMirror--left': props.sens === 'gauche' }"
+      :ref="(el) => setHandRef(el as HTMLElement | null)"
+      class="hand"
+      :data-state="props.state"
     >
-      <div
-        :ref="(el) => setHandRef(el as HTMLElement | null)"
-        class="hand"
-        :data-state="props.state"
-      >
-        <div class="topFingers" aria-hidden="true">
-          <div
-            v-for="(finger, i) in topFingersData"
-            :key="i"
-            :ref="(el) => setTopFingerRef(el as HTMLElement | null, i + 1)"
-            class="finger finger--top"
-            :class="{ 'finger--pointing': i === 0 }"
-            :data-index="i + 1"
-            :style="{
-              '--phalanxBaseHeight': `${finger.phalanxBaseHeight}px`,
-              '--fold-topOffset': `${finger.topOffset * -3}px`,
-            }"
-          >
-            <div class="phalanx square phalanx--tip"></div>
-            <div class="phalanx square phalanx--base"></div>
-          </div>
-        </div>
-
+      <div class="topFingers" aria-hidden="true">
         <div
-          :ref="(el) => setTopFingerRef(el as HTMLElement | null, 0)"
-          class="finger finger--thumb"
-          :data-index="0"
+          v-for="(finger, i) in topFingersData"
+          :key="i"
+          :ref="(el) => setTopFingerRef(el as HTMLElement | null, i + 1)"
+          class="finger finger--top"
+          :class="{ 'finger--pointing': i === 0 }"
+          :data-index="i + 1"
           :style="{
-            '--phalanxBaseHeight': `${thumbData.phalanxBaseHeight}px`,
+            '--phalanxBaseHeight': `${finger.phalanxBaseHeight}px`,
+            '--fold-topOffset': `${finger.topOffset * -3}px`,
           }"
         >
           <div class="phalanx square phalanx--tip"></div>
           <div class="phalanx square phalanx--base"></div>
         </div>
-
-        <div class="palm square"></div>
       </div>
+
+      <div
+        :ref="(el) => setTopFingerRef(el as HTMLElement | null, 0)"
+        class="finger finger--thumb"
+        :data-index="0"
+        :style="{
+          '--phalanxBaseHeight': `${thumbData.phalanxBaseHeight}px`,
+        }"
+      >
+        <div class="phalanx square phalanx--tip"></div>
+        <div class="phalanx square phalanx--base"></div>
+      </div>
+
+      <div class="palm square"></div>
     </div>
-  </aside>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -55,17 +55,9 @@ import {
 } from "vue";
 import {
   useHandAnimation,
+  type HandState,
   type FingerData,
 } from "../composables/useHandAnimation";
-
-type HandState =
-  | "idle"
-  | "active"
-  | "warning"
-  | "insult"
-  | "sending"
-  | "success"
-  | "error";
 type HandSens = "droite" | "gauche";
 
 const props = withDefaults(
@@ -102,13 +94,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-.handStage {
-  position: relative;
-  height: 320px;
-  perspective: 900px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.handContainer {
+  height: fit-content;
+  width: fit-content;
 }
 
 .square {
@@ -117,10 +105,6 @@ onBeforeUnmount(() => {
 }
 
 .handMirror {
-  transform: scaleX(1);
-}
-
-.handMirror--left {
   transform: scaleX(-1);
 }
 
@@ -167,6 +151,7 @@ onBeforeUnmount(() => {
   &--thumb {
     right: 82%;
     bottom: 29%;
+    transform-origin: bottom;
     --finger-x: -22deg;
     --finger-z: -38deg;
   }
@@ -196,7 +181,7 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 720px) {
-  .handStage {
+  .handContainer {
     order: -1;
     height: 220px;
   }

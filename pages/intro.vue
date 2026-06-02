@@ -7,7 +7,3 @@ import Intro from "../app/components/Intro.vue";
     <Intro />
   </section>
 </template>
-
-<style scoped>
-/* Page-level adjustments can go here if needed */
-</style>

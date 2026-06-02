@@ -94,6 +94,8 @@ onBeforeUnmount(() => {
     class="introWrapper"
     :class="{ 'is-portrait': screenMode === 'vertical' }"
   >
+    <pre ref="asciiArt" class="ascii-art"></pre>
+
     <ul
       class="titles"
       ref="titles"
@@ -130,17 +132,15 @@ onBeforeUnmount(() => {
         </li>
       </ul>
     </nav>
-    <pre ref="asciiArt" class="ascii-art"></pre>
   </div>
 </template>
 
 <style lang="scss">
 .introWrapper {
   position: relative;
-  isolation: isolate;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   flex-direction: row;
   min-height: 100%;
   overflow: hidden;
@@ -156,19 +156,6 @@ onBeforeUnmount(() => {
     .main-menu {
       width: 100%;
       z-index: 1;
-    }
-
-    .ascii-art {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      height: 100%;
-      padding: 20px;
-      justify-content: center;
-      align-items: flex-start;
-      font-size: clamp(0.28rem, 1.7vw, 0.8vh);
     }
   }
 
@@ -246,30 +233,20 @@ onBeforeUnmount(() => {
   inset: 0 auto 0 0;
   width: 100vw;
   height: 100dvh;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
 
   opacity: 0.3;
 
   font-family: "Courier New", monospace;
-  font-size: clamp(0.34rem, 0.72vw, 1.05vh);
-  line-height: 0.95;
+  font-size: clamp(0.34rem, 0.65vw, 999vh);
+  line-height: 1;
   letter-spacing: 0;
   white-space: pre;
   overflow: hidden;
   display: flex;
   align-items: flex-start;
-  justify-content: flex-start;
-  padding: 20px;
-  color: inherit;
-}
-
-@media (max-width: 768px), (max-aspect-ratio: 1/1) {
-  .ascii-art {
-    width: 100%;
-    height: 100%;
-    font-size: clamp(0.28rem, 1.7vw, 0.8vh);
-    line-height: 0.9;
-  }
+  justify-content: center;
+  color: black;
 }
 </style>

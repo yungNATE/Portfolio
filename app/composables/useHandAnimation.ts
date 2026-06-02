@@ -1,7 +1,8 @@
 import gsap from "gsap";
 import { nextTick, ref, type Ref, watch, onBeforeUnmount } from "vue";
+import { ssrGetDirectiveProps } from "vue/server-renderer";
 
-type HandState =
+export type HandState =
   | "idle"
   | "active"
   | "warning"
@@ -10,6 +11,13 @@ type HandState =
   | "success"
   | "error";
 
+type HandAnimationIntent =
+  | "wave"
+  | "no"
+  | "middleFinger"
+  | "sending"
+  | "success";
+
 type FingerData = { phalanxBaseHeight: number; topOffset: number };
 
 export function useHandAnimation(
@@ -17,6 +25,7 @@ export function useHandAnimation(
   fingersData: readonly FingerData[],
   multiplicator = 56,
 ) {
+  // Utils
   const rootEl = ref<HTMLElement | null>(null);
   const handEl = ref<HTMLElement | null>(null);
   const thumbEl = ref<HTMLElement | null>(null);
@@ -29,8 +38,7 @@ export function useHandAnimation(
   let fingerNoDelayTween: gsap.core.Tween | null = null;
   let fingerNoTween: gsap.core.Tween | gsap.core.Timeline | null = null;
 
-  const baseIdleDuration = 2.8;
-  const activeIdleDuration = 1.9;
+  const baseIdleDuration = 1.9;
   const classicFoldDuration = 1 / 3;
   const fingerRotateDuration = 0.28;
   const baseThumbRotation = { x: 0, z: -38 };
@@ -116,12 +124,14 @@ export function useHandAnimation(
     });
   };
 
-  const startIdle = (speed = 1) => {
+  const startWaveMotion = (speed = 1) => {
     if (!handEl.value) return;
     if (!idleTween) {
+      gsap.set(handEl.value, { rotationZ: 0 });
       idleTween = gsap.to(handEl.value, {
-        y: -7,
-        rotationZ: 0.6,
+        rotationZ: 24,
+        x: 5,
+        y: 5,
         duration: baseIdleDuration / 2,
         ease: "sine.inOut",
         repeat: -1,
@@ -131,10 +141,36 @@ export function useHandAnimation(
     idleTween.timeScale(speed).play();
   };
 
-  const stopIdle = () => {
+  const stopWaveMotion = () => {
     if (!idleTween || !handEl.value) return;
     idleTween.progress(0).pause();
-    gsap.set(handEl.value, { y: 0, rotationZ: 0 });
+    gsap.set(handEl.value, { x: 0, rotationZ: 0 });
+  };
+
+  const startFingerNo = () => {
+    const topFingers = getTopFingers();
+    const pointing = topFingers[0];
+    if (!pointing) return;
+    fingerNoTween = gsap.timeline({
+      repeat: -1,
+      yoyo: true,
+      defaults: { ease: "sine.inOut" },
+    });
+    fingerNoTween.to(pointing, { rotationZ: -11, duration: 0.72 / 2 });
+    fingerNoTween.to(pointing, { rotationZ: 11, duration: 0.72 / 2 });
+  };
+
+  const stopFingerNo = () => {
+    fingerNoDelayTween?.kill();
+    fingerNoDelayTween = null;
+    fingerNoTween?.kill();
+    fingerNoTween = null;
+
+    const topFingers = getTopFingers();
+    const pointing = topFingers[0];
+    if (!pointing) return;
+    gsap.killTweensOf(pointing);
+    gsap.set(pointing, { rotationZ: 0 });
   };
 
   const startFingerNoAfterFold = (delay: number) => {
@@ -144,12 +180,6 @@ export function useHandAnimation(
       return;
     }
     fingerNoDelayTween = gsap.delayedCall(delay, startFingerNo);
-  };
-
-  const startIdleForState = (state: HandState) => {
-    const speed =
-      state === "active" ? baseIdleDuration / activeIdleDuration : 1;
-    startIdle(speed);
   };
 
   const startSending = () => {
@@ -184,43 +214,6 @@ export function useHandAnimation(
     sendingTapTween?.kill();
     sendingTween = null;
     sendingTapTween = null;
-  };
-
-  const startFingerNo = () => {
-    const topFingers = getTopFingers();
-    const pointing = topFingers[0];
-    if (!pointing) return;
-    fingerNoTween = gsap.timeline({
-      repeat: -1,
-      yoyo: true,
-      defaults: { ease: "sine.inOut" },
-    });
-    fingerNoTween.to(pointing, { rotationZ: -11, duration: 0.72 / 2 });
-    fingerNoTween.to(pointing, { rotationZ: 11, duration: 0.72 / 2 });
-  };
-
-  const stopFingerNo = () => {
-    fingerNoDelayTween?.kill();
-    fingerNoDelayTween = null;
-    fingerNoTween?.kill();
-    fingerNoTween = null;
-
-    const topFingers = getTopFingers();
-    const pointing = topFingers[0];
-    if (!pointing) return;
-    gsap.killTweensOf(pointing);
-    gsap.set(pointing, { rotationZ: 0 });
-  };
-
-  const setTopFingerRotationX = (value: number) => {
-    const topFingers = getTopFingers();
-    if (!topFingers.length) return;
-    gsap.to(topFingers, {
-      rotationX: value,
-      duration: fingerRotateDuration,
-      ease: "power2.out",
-      overwrite: "auto",
-    });
   };
 
   const setPointingRotationX = (value: number) => {
@@ -327,18 +320,17 @@ export function useHandAnimation(
     return topFingersDone;
   };
 
-  const applyIdlePose = () => {
+  // Animations
+  const wave = () => {
     resetTopFingerRotationZ();
     foldTopFingers(false);
     foldThumb(false);
     setThumbRotation(baseThumbRotation.x, baseThumbRotation.z);
+    startWaveMotion();
   };
 
-  const applyActivePose = applyIdlePose;
-
-  const applyWarningPose = () => {
+  const no = () => {
     resetTopFingerRotationZ();
-    // Ensure index is raised even after coming from "insult" state.
     const indexUnfoldDuration = foldFinger(1, false, 0);
     const topFingersFoldDuration = foldFingers(true, 0);
     startFingerNoAfterFold(
@@ -346,7 +338,7 @@ export function useHandAnimation(
     );
   };
 
-  const applyInsultPose = () => {
+  const middleFinger = () => {
     resetTopFingerRotationZ();
     foldFingers(false);
     foldFingers(true, 1);
@@ -366,28 +358,39 @@ export function useHandAnimation(
     startSending();
   };
 
-  const stateHandlers: Record<HandState, () => void> = {
-    idle: applyIdlePose,
-    active: applyActivePose,
-    warning: applyWarningPose,
-    error: applyWarningPose,
-    insult: applyInsultPose,
-    sending: applySendingPose,
-    success: applySuccessPose,
+  // Launch animations directly from the state
+  const stateToAnimationIntent = (state: HandState): void => {
+    switch (state) {
+      case "idle":
+      case "active":
+        wave();
+        return;
+      case "warning":
+      case "error":
+        no();
+        return;
+      case "insult":
+        middleFinger();
+        return;
+      case "sending":
+        applySendingPose();
+        return;
+      case "success":
+        applySuccessPose();
+        return;
+    }
   };
 
   const applyState = (state: HandState) => {
     stopSending();
     stopFingerNo();
 
-    if (state === "sending") {
-      stopIdle();
-    } else {
-      startIdleForState(state);
+    // stop idle (wave motion) when entering any state that is not idle/active
+    if (state !== "idle" && state !== "active") {
+      stopWaveMotion();
     }
 
-    const handler = stateHandlers[state] ?? applyIdlePose;
-    handler();
+    stateToAnimationIntent(state);
   };
 
   const mount = async (root: HTMLElement | null) => {
@@ -396,7 +399,6 @@ export function useHandAnimation(
     if (!rootEl.value) return;
     ctx = gsap.context(() => {
       setBasePose();
-      startIdle();
       applyState(stateRef.value);
     }, rootEl.value);
 
@@ -430,7 +432,6 @@ export function useHandAnimation(
     setTopFingerRef,
     mount,
     destroy,
-    // export utility setters so component can bind real DOM refs
     setHandRef: (el: HTMLElement | null) => (handEl.value = el),
   };
 }
