@@ -11,14 +11,11 @@
             <b>Je vous répondrai dès que possible !</b>
           </p>
         </div>
-        <!-- @submit.prevent="onSubmit" -->
-        <!-- action="/" -->
         <form
           data-netlify="true"
           data-netlify-honeypot="bot-field"
-          action="/merci"
           name="contact"
-          method="POST"
+          @submit.prevent="onSubmit"
           class="contactForm"
           :class="{
             'contactForm--hidden': sent || isSending,
@@ -265,7 +262,7 @@ async function onSubmit() {
   body.append("name", form.name);
   body.append("email", form.email);
   body.append("message", form.message);
-  if (botField.value) body.append("bot-field", botField.value);
+
   try {
     const response = await fetch("/", {
       method: "POST",
