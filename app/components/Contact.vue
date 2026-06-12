@@ -18,6 +18,7 @@
           @submit.prevent="onSubmit"
           class="contactForm"
         >
+          <input type="hidden" name="form-name" value="contact" />
           <!-- :class="{
             'contactForm--hidden': sent || isSending,
           }" -->
