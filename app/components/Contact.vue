@@ -16,8 +16,9 @@
         <form
           data-netlify="true"
           data-netlify-honeypot="bot-field"
+          action="/merci"
           name="contact"
-          novalidate
+          method="POST"
           class="contactForm"
           :class="{
             'contactForm--hidden': sent || isSending,
