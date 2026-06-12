@@ -4,6 +4,10 @@ export default defineNuxtConfig({
   css: ["@/assets/css/reset.css", "@/assets/css/global.scss"],
   modules: ["@nuxt/fonts", "@nuxt/content"],
 
+  nitro: {
+    preset: "static",
+  },
+
   debug: true,
 
   experimental: {
