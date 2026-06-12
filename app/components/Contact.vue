@@ -262,6 +262,7 @@ async function onSubmit() {
   body.append("name", form.name);
   body.append("email", form.email);
   body.append("message", form.message);
+  console.log(body);
 
   try {
     const response = await fetch("/", {
@@ -269,6 +270,8 @@ async function onSubmit() {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body.toString(),
     });
+
+    console.log(response);
 
     if (!response.ok) throw new Error();
 
