@@ -18,11 +18,11 @@
           method="POST"
           @submit.prevent="onSubmit"
           class="contactForm"
+          :class="{
+            'contactForm--hidden': sent || isSending,
+          }"
         >
           <input type="hidden" name="form-name" value="contact" />
-          <!-- :class="{
-            'contactForm--hidden': sent || isSending,
-          }" -->
           <!-- honeypot -->
           <p class="sr-only">
             <label
