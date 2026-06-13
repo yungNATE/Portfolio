@@ -29,6 +29,8 @@ export function useHandAnimation(
   const rootEl = ref<HTMLElement | null>(null);
   const handEl = ref<HTMLElement | null>(null);
   const thumbEl = ref<HTMLElement | null>(null);
+  const topFingersEl = ref<HTMLElement | null>(null);
+  const palmEl = ref<HTMLElement | null>(null);
   const fingerMap = ref<Map<number, HTMLElement>>(new Map());
 
   let ctx: gsap.Context | null = null;
@@ -42,7 +44,6 @@ export function useHandAnimation(
   const classicFoldDuration = 1 / 3;
   const fingerRotateDuration = 0.28;
   const baseThumbRotation = { x: 0, z: -38 };
-  const successThumbRotation = { x: -8, z: -70 };
 
   const getTopFingers = () => {
     // Return ordered array of finger elements sorted by data-index
@@ -59,13 +60,25 @@ export function useHandAnimation(
     return baseHeight;
   };
 
-  const setTopFingerRef = (el: HTMLElement | null, index: number) => {
+  const setFingerRef = (el: HTMLElement | null, index: number) => {
     if (!el) {
       fingerMap.value.delete(index);
       return;
     }
     fingerMap.value.set(index, el);
     if (index === 0) thumbEl.value = el;
+  };
+
+  const setTopFingersRef = (el: HTMLElement | null) => {
+    topFingersEl.value = el;
+  };
+
+  const setHandRef = (el: HTMLElement | null) => {
+    handEl.value = el;
+  };
+
+  const setPalmRef = (el: HTMLElement | null) => {
+    palmEl.value = el;
   };
 
   const setBasePose = () => {
@@ -92,6 +105,8 @@ export function useHandAnimation(
         transformOrigin: "bottom",
         rotationX: baseThumbRotation.x,
         rotationZ: baseThumbRotation.z,
+        right: "82%",
+        bottom: "29%",
       });
 
       gsap.set(thumbEl.value.querySelector(".phalanx--base"), {
@@ -250,6 +265,56 @@ export function useHandAnimation(
     });
   };
 
+  const morphIntoBar = () => {
+    const width = 18;
+    const tl = gsap.timeline({
+      defaults: { duration: 0.4, ease: "power2.inOut" },
+    });
+
+    // Morph fingers
+    if (topFingersEl.value) {
+      tl.to(topFingersEl.value, { width: 0 }, 0);
+      const topFingers = getTopFingers();
+      topFingers.forEach((el) => {
+        gsap.set(el.querySelector(".phalanx--base"), { borderRadius: 0 });
+        gsap.set(el.querySelector(".phalanx--tip"), { borderRadius: 0 });
+      });
+    }
+
+    // morph hand
+    if (palmEl.value) {
+      tl.to(
+        palmEl.value,
+        {
+          width: width,
+          borderRadius: 0,
+          height: 300,
+        },
+        0,
+      );
+    }
+
+    // retract thumb
+    if (thumbEl.value) {
+      setThumbRotation(0, 0);
+      gsap.set(thumbEl.value, { right: 0 });
+      gsap.set(thumbEl.value.querySelector(".phalanx--base"), { width: width });
+      gsap.set(thumbEl.value.querySelector(".phalanx--tip"), { width: width });
+    }
+
+    return tl;
+  };
+
+  const slideOutOfScreen = () => {
+    if (handEl.value) {
+      return gsap.to(handEl.value, {
+        x: -9999,
+        duration: 2, // Ajusté pour être visible, 15 était très lent
+        ease: "power2.in",
+      });
+    }
+  };
+
   const foldFinger = (
     fingerIndex: number,
     fold: boolean,
@@ -264,35 +329,47 @@ export function useHandAnimation(
 
     gsap.killTweensOf([fingerEl, tipEl, baseEl]);
 
-    const tipDelay = fold ? delay : delay + classicFoldDuration * 0.5;
-    const baseDelay = fold ? delay + classicFoldDuration * 0.5 : delay;
+    const tl = gsap.timeline({ delay });
+    const middleFinger = async () => {
+      resetTopFingerRotationZ();
+      // 1. On ferme tout d'abord
+      await foldFingers(true);
+      // 2. Puis on lève spécifiquement le majeur
+      await foldFinger(2, false, 0);
+    };
     const phalanxBorderRadius = 5;
     const phalanxBorderTopRadius = 10;
     const foldedPhalanxBorderTopRadius = 20;
-
-    gsap.to(tipEl, {
-      rotationX: fold ? 90 : 0,
-      borderRadius: `${phalanxBorderTopRadius}px ${phalanxBorderTopRadius}px ${phalanxBorderRadius}px ${phalanxBorderRadius}px`,
-      duration: classicFoldDuration,
-      ease: "power2.inOut",
-      delay: tipDelay,
-    });
 
     const baseHeight = fold
       ? `${customFoldedBaseHeight}px`
       : `${fingerBaseheight(fingerIndex)}px`;
 
-    gsap.to(baseEl, {
-      height: baseHeight,
-      borderRadius: fold
-        ? `${foldedPhalanxBorderTopRadius}px ${foldedPhalanxBorderTopRadius}px 0px 0px`
-        : `${phalanxBorderRadius}px ${phalanxBorderRadius}px 0px 0px`,
-      duration: classicFoldDuration,
-      ease: "power2.inOut",
-      delay: baseDelay,
-    });
+    tl.to(
+      tipEl,
+      {
+        rotationX: fold ? 90 : 0,
+        borderRadius: `${phalanxBorderTopRadius}px ${phalanxBorderTopRadius}px ${phalanxBorderRadius}px ${phalanxBorderRadius}px`,
+        duration: classicFoldDuration,
+        ease: "power2.inOut",
+      },
+      fold ? 0 : classicFoldDuration * 0.5,
+    );
 
-    return Math.max(tipDelay, baseDelay) + classicFoldDuration;
+    tl.to(
+      baseEl,
+      {
+        height: baseHeight,
+        borderRadius: fold
+          ? `${foldedPhalanxBorderTopRadius}px ${foldedPhalanxBorderTopRadius}px 0px 0px`
+          : `${phalanxBorderRadius}px ${phalanxBorderRadius}px 0px 0px`,
+        duration: classicFoldDuration,
+        ease: "power2.inOut",
+      },
+      fold ? classicFoldDuration * 0.5 : 0,
+    );
+
+    return tl; // Retourner la timeline permet de faire : await foldFinger(...)
   };
 
   const foldTopFingers = (fold: boolean, skippedIndex?: number) => {
@@ -303,7 +380,8 @@ export function useHandAnimation(
       if (i === skippedIndex) return;
       const fingerIndex = i + 1;
       const delay = fold ? 0.32 / (i + 1) : 0.32 / (topFingers.length - i + 1);
-      const completion = foldFinger(fingerIndex, fold, delay);
+      const tl = foldFinger(fingerIndex, fold, delay);
+      const completion = tl ? delay + classicFoldDuration * 1.5 : 0;
       maxCompletion = Math.max(maxCompletion, completion);
     });
 
@@ -329,13 +407,17 @@ export function useHandAnimation(
     startWaveMotion();
   };
 
-  const no = () => {
+  const no = async () => {
     resetTopFingerRotationZ();
-    const indexUnfoldDuration = foldFinger(1, false, 0);
-    const topFingersFoldDuration = foldFingers(true, 0);
-    startFingerNoAfterFold(
-      Math.max(indexUnfoldDuration, topFingersFoldDuration),
-    );
+
+    // On attend que les doigts se plient/déplient
+    await Promise.all([
+      foldFinger(1, false, 0), // Index se lève
+      foldFingers(true, 0), // Les autres se plient
+    ]);
+
+    // On lance le balancier seulement quand la pose est prête
+    startFingerNo();
   };
 
   const middleFinger = () => {
@@ -344,18 +426,11 @@ export function useHandAnimation(
     foldFingers(true, 1);
   };
 
-  const applySuccessPose = () => {
-    resetTopFingerRotationZ();
-    foldFingers(false);
-    setPointingRotationX(-26);
-    setThumbRotation(successThumbRotation.x, successThumbRotation.z);
-  };
+  const thumbYes = () => {};
 
-  const applySendingPose = () => {
-    resetTopFingerRotationZ();
-    foldFingers(false);
-    setThumbRotation(baseThumbRotation.x, baseThumbRotation.z);
-    startSending();
+  const wipeForm = async () => {
+    await morphIntoBar();
+    slideOutOfScreen();
   };
 
   // Launch animations directly from the state
@@ -364,6 +439,8 @@ export function useHandAnimation(
       case "idle":
       case "active":
         wave();
+        // setBasePose();
+        // wipeForm();
         return;
       case "warning":
       case "error":
@@ -373,10 +450,10 @@ export function useHandAnimation(
         middleFinger();
         return;
       case "sending":
-        applySendingPose();
+        wipeForm();
         return;
       case "success":
-        applySuccessPose();
+        thumbYes();
         return;
     }
   };
@@ -429,10 +506,13 @@ export function useHandAnimation(
     rootEl,
     handEl,
     thumbEl,
-    setTopFingerRef,
+    topFingersEl,
+    setTopFingersRef,
+    setFingerRef,
+    setHandRef,
+    setPalmRef,
     mount,
     destroy,
-    setHandRef: (el: HTMLElement | null) => (handEl.value = el),
   };
 }
 

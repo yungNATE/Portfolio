@@ -10,17 +10,21 @@
       class="hand"
       :data-state="props.state"
     >
-      <div class="topFingers" aria-hidden="true">
+      <div
+        class="topFingers"
+        aria-hidden="true"
+        :ref="(el) => setTopFingersRef(el as HTMLElement | null)"
+      >
         <div
           v-for="(finger, i) in topFingersData"
           :key="i"
-          :ref="(el) => setTopFingerRef(el as HTMLElement | null, i + 1)"
+          :ref="(el) => setFingerRef(el as HTMLElement | null, i + 1)"
           class="finger finger--top"
           :class="{ 'finger--pointing': i === 0 }"
           :data-index="i + 1"
           :style="{
             '--phalanxBaseHeight': `${finger.phalanxBaseHeight}px`,
-            '--fold-topOffset': `${finger.topOffset * -3}px`,
+            '--fold-topOffset': `${finger.topOffset * 3}px`,
           }"
         >
           <div class="phalanx square phalanx--tip"></div>
@@ -29,7 +33,7 @@
       </div>
 
       <div
-        :ref="(el) => setTopFingerRef(el as HTMLElement | null, 0)"
+        :ref="(el) => setFingerRef(el as HTMLElement | null, 0)"
         class="finger finger--thumb"
         :data-index="0"
         :style="{
@@ -40,7 +44,10 @@
         <div class="phalanx square phalanx--base"></div>
       </div>
 
-      <div class="palm square"></div>
+      <div
+        class="palm square"
+        :ref="(el) => setPalmRef(el as HTMLElement | null)"
+      ></div>
     </div>
   </div>
 </template>
@@ -80,8 +87,15 @@ const fingersData: readonly FingerData[] = [thumbData, ...topFingersData];
 
 const stateRef = toRef(props, "state");
 
-const { rootEl, setTopFingerRef, mount, destroy, setHandRef } =
-  useHandAnimation(stateRef as any, fingersData, multiplicator);
+const {
+  rootEl,
+  setFingerRef,
+  setTopFingersRef,
+  mount,
+  destroy,
+  setHandRef,
+  setPalmRef,
+} = useHandAnimation(stateRef as any, fingersData, multiplicator);
 
 onMounted(async () => {
   await nextTick();
@@ -126,10 +140,7 @@ onBeforeUnmount(() => {
 .topFingers {
   position: absolute;
   bottom: 98%;
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
+  width: 80%;
   pointer-events: none;
 }
 
@@ -144,8 +155,15 @@ onBeforeUnmount(() => {
   will-change: transform;
 
   &--top {
-    position: relative;
-    top: var(--fold-topOffset);
+    // position: relative;
+    bottom: var(--fold-topOffset);
+
+    $fingersNb: 4;
+    @for $fingerIndex from 1 through $fingersNb {
+      &:nth-child(#{$fingerIndex}) {
+        left: #{calc((100 / ($fingersNb - 1)) * ($fingerIndex - 1)) + "%"};
+      }
+    }
   }
 
   &--thumb {
