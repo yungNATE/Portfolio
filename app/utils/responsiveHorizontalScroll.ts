@@ -1,22 +1,26 @@
-import { mapVerticalToHorizontalScroll } from "./horizontalScroll";
-import { getScreenMode, getScreenRatio } from "./screen";
-
 export type ResponsiveOptions = {
-  breakpointRatio?: number; // width/height threshold (default 1)
-  portraitClass?: string; // class applied when portrait (default 'is-portrait')
+  breakpointRatio?: number;
+  portraitClass?: string;
   mapOptions?: Parameters<typeof mapVerticalToHorizontalScroll>[1];
 };
 
-/**
- * Initialize responsive horizontal scrolling: enables the vertical->horizontal
- * mapping when the screen ratio is >= `breakpointRatio`, otherwise disables
- * it and adds a CSS class to switch layout to vertical.
- * Returns a disposer that cleans listeners and active mapping.
- */
+export type ResponsiveHorizontalScrollHandle = {
+  dispose: () => void;
+  pause: () => void;
+  resume: () => void;
+};
+
+let activeHandle: ResponsiveHorizontalScrollHandle | null = null;
+
+/** Récupère l'instance actuellement initialisée (null si aucune). */
+export function getActiveHorizontalScroll(): ResponsiveHorizontalScrollHandle | null {
+  return activeHandle;
+}
+
 export function initResponsiveHorizontalScroll(
   el: HTMLElement,
   opts: ResponsiveOptions = {},
-) {
+): ResponsiveHorizontalScrollHandle {
   const {
     breakpointRatio = 1,
     portraitClass = "is-portrait",
@@ -24,10 +28,13 @@ export function initResponsiveHorizontalScroll(
   } = opts;
 
   let disposeMap: (() => void) | null = null;
+  let paused = false;
 
   const isLandscape = () => getScreenRatio() >= breakpointRatio;
 
   function update() {
+    if (paused) return;
+
     if (getScreenMode() === "horizontal" && isLandscape()) {
       el.classList.remove(portraitClass);
       if (!disposeMap)
@@ -47,14 +54,31 @@ export function initResponsiveHorizontalScroll(
   window.addEventListener("resize", onResize);
   window.addEventListener("orientationchange", onResize);
 
-  return () => {
-    window.removeEventListener("resize", onResize);
-    window.removeEventListener("orientationchange", onResize);
-    if (disposeMap) {
-      disposeMap();
-      disposeMap = null;
-    }
+  const handle: ResponsiveHorizontalScrollHandle = {
+    dispose: () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+      if (disposeMap) {
+        disposeMap();
+        disposeMap = null;
+      }
+      if (activeHandle === handle) activeHandle = null;
+    },
+    pause: () => {
+      paused = true;
+      if (disposeMap) {
+        disposeMap();
+        disposeMap = null;
+      }
+    },
+    resume: () => {
+      paused = false;
+      update(); // ré-évalue l'orientation actuelle, recrée le mapping si toujours pertinent
+    },
   };
+
+  activeHandle = handle;
+  return handle;
 }
 
 export default initResponsiveHorizontalScroll;

@@ -1,7 +1,5 @@
 import gsap from "gsap";
 
-import { getScreenRatio } from "./screen";
-
 export type HorizontalScrollOptions = {
   duration?: number;
   ease?: string;
