@@ -1,6 +1,13 @@
 import gsap from "gsap";
+import { GSDevTools } from "gsap/GSDevTools";
 import { nextTick, ref, type Ref, watch, onBeforeUnmount } from "vue";
-import { ssrGetDirectiveProps } from "vue/server-renderer";
+// import { ssrGetDirectiveProps } from "vue/server-renderer"; // Cette ligne est probablement inutile, vous pouvez la supprimer.
+
+// Enregistrez le plugin GSDevTools une seule fois, au niveau du module.
+// Protection SSR essentielle pour éviter les erreurs "createElementNS".
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(GSDevTools);
+}
 
 export type HandState =
   | "idle"
@@ -32,13 +39,24 @@ export function useHandAnimation(
   const topFingersEl = ref<HTMLElement | null>(null);
   const palmEl = ref<HTMLElement | null>(null);
   const fingerMap = ref<Map<number, HTMLElement>>(new Map());
+  const formEl = ref<HTMLElement | null>(null);
+  const handWrapperEl = ref<HTMLElement | null>(null);
+  const contactLayoutEl = ref<HTMLElement | null>(null);
+  const successRevealEl = ref<HTMLElement | null>(null);
+  const successHandEl = ref<HTMLElement | null>(null);
+  const successTextEl = ref<HTMLElement | null>(null);
 
   let ctx: gsap.Context | null = null;
+  let gsDevToolsInstance: GSDevTools | null = null;
   let idleTween: gsap.core.Tween | null = null;
   let sendingTween: gsap.core.Tween | null = null;
   let sendingTapTween: gsap.core.Tween | null = null;
   let fingerNoDelayTween: gsap.core.Tween | null = null;
   let fingerNoTween: gsap.core.Tween | gsap.core.Timeline | null = null;
+  let successRevealTween: gsap.core.Timeline | null = null;
+  let successWaveTween: gsap.core.Tween | null = null;
+  let successRevealQueued = false;
+  let wipeMasterTimeline: gsap.core.Timeline | null = null;
 
   const baseIdleDuration = 1.9;
   const classicFoldDuration = 1 / 3;
@@ -79,6 +97,18 @@ export function useHandAnimation(
 
   const setPalmRef = (el: HTMLElement | null) => {
     palmEl.value = el;
+  };
+
+  const setFormRef = (el: HTMLElement | null) => {
+    formEl.value = el;
+  };
+
+  const setHandWrapperRef = (el: HTMLElement | null) => {
+    handWrapperEl.value = el;
+  };
+
+  const setContactLayoutRef = (el: HTMLElement | null) => {
+    contactLayoutEl.value = el;
   };
 
   const setBasePose = () => {
@@ -254,20 +284,91 @@ export function useHandAnimation(
     });
   };
 
-  const setThumbRotation = (x: number, z: number) => {
-    if (!thumbEl.value) return;
-    gsap.to(thumbEl.value, {
-      rotationX: x,
-      rotationZ: z,
-      duration: fingerRotateDuration,
-      ease: "power2.out",
-      overwrite: "auto",
+  const playSuccessReveal = () => {
+    const tl = gsap.timeline({ id: "SuccessRevealTimeline" });
+
+    successRevealQueued = false;
+    successRevealTween?.kill();
+    successWaveTween?.kill();
+
+    gsap.set(successRevealEl.value, {
+      opacity: 1,
     });
+    gsap.set(successHandEl.value, {
+      x: 0,
+      opacity: 0,
+      scale: 0.1,
+      rotationZ: 0,
+      transformOrigin: "bottom center",
+    });
+    gsap.set(successTextEl.value, {
+      opacity: 0,
+      scale: 0.1,
+      x: 0,
+      clipPath: "polygon(0 0, 50% 0, 50% 100%, 0% 100%)",
+      transformOrigin: "left center",
+    });
+
+    tl.to(
+      [successHandEl.value, successTextEl.value],
+      {
+        opacity: 1,
+        scale: 1,
+        duration: 0.42,
+        ease: "back.out(1.7)",
+      },
+      0,
+    );
+    const offset = 80;
+    tl.to(
+      successTextEl.value,
+      {
+        x: -offset,
+        clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)",
+        duration: 0.28,
+        ease: "power2.out",
+      },
+      ">0.04",
+    );
+    tl.to(
+      successHandEl.value,
+      {
+        x: offset,
+        duration: 0.28,
+        ease: "power2.out",
+      },
+      "<",
+    );
+    tl.to(
+      successHandEl.value,
+      {
+        rotationZ: 8,
+        duration: 0.55,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      },
+      ">-0.02",
+    );
+
+    return tl;
   };
 
   const morphIntoBar = () => {
     const width = 18;
+    const getBarHeight = () => {
+      const measuredHeight =
+        handWrapperEl.value?.getBoundingClientRect().height ??
+        contactLayoutEl.value?.getBoundingClientRect().height ??
+        rootEl.value?.parentElement?.getBoundingClientRect().height ??
+        rootEl.value?.getBoundingClientRect().height ??
+        0;
+
+      return `${Math.ceil(measuredHeight)}px`;
+    };
+
     const tl = gsap.timeline({
+      id: "MorphIntoBarTimeline",
       defaults: { duration: 0.4, ease: "power2.inOut" },
     });
 
@@ -276,8 +377,8 @@ export function useHandAnimation(
       tl.to(topFingersEl.value, { width: 0 }, 0);
       const topFingers = getTopFingers();
       topFingers.forEach((el) => {
-        gsap.set(el.querySelector(".phalanx--base"), { borderRadius: 0 });
-        gsap.set(el.querySelector(".phalanx--tip"), { borderRadius: 0 });
+        tl.to(el.querySelector(".phalanx--base"), { borderRadius: 0 }, 0);
+        tl.to(el.querySelector(".phalanx--tip"), { borderRadius: 0 }, 0);
       });
     }
 
@@ -288,31 +389,126 @@ export function useHandAnimation(
         {
           width: width,
           borderRadius: 0,
-          height: 300,
+          height: getBarHeight(),
         },
         0,
       );
     }
 
-    // retract thumb
+    if (rootEl.value) {
+      tl.to(
+        rootEl.value,
+        {
+          height: getBarHeight(),
+        },
+        0,
+      );
+    }
+    if (handEl.value) {
+      tl.to(
+        handEl.value,
+        {
+          height: getBarHeight(),
+        },
+        0,
+      );
+    }
+
+    // retract thumb - directement dans la timeline
     if (thumbEl.value) {
-      setThumbRotation(0, 0);
-      gsap.set(thumbEl.value, { right: 0 });
-      gsap.set(thumbEl.value.querySelector(".phalanx--base"), { width: width });
-      gsap.set(thumbEl.value.querySelector(".phalanx--tip"), { width: width });
+      tl.to(
+        thumbEl.value,
+        {
+          rotationX: 0,
+          rotationZ: 0,
+          duration: 0.4,
+          right: 0,
+        },
+        0,
+      );
+      tl.to(
+        thumbEl.value.querySelector(".phalanx--base"),
+        {
+          width: width,
+          borderRadius: 0,
+        },
+        0,
+      );
+      tl.to(
+        thumbEl.value.querySelector(".phalanx--tip"),
+        {
+          width: width,
+          borderRadius: 0,
+        },
+        0,
+      );
     }
 
     return tl;
   };
 
-  const slideOutOfScreen = () => {
-    if (handEl.value) {
-      return gsap.to(handEl.value, {
-        x: -9999,
-        duration: 2, // Ajusté pour être visible, 15 était très lent
-        ease: "power2.in",
-      });
+  const SPEED = 1000; // px/s
+
+  const closeForm = () => {
+    const tl = gsap.timeline({ id: "CloseFormTimeline" });
+    if (formEl.value) {
+      const contact = formEl.value.closest(".contact");
+      if (contact) {
+        const contactRect = contact.getBoundingClientRect();
+        if (!contactRect) return tl;
+        tl.set(contact, { width: contactRect.width });
+      }
+
+      const formWrapper = formEl.value.closest(".formWrapper");
+      if (formWrapper) {
+        tl.set(formEl.value, {
+          clipPath: "inset(0 0% 0 0)",
+        });
+
+        tl.to(formEl.value, {
+          clipPath: "inset(0 100% 0 0)",
+          duration: () =>
+            (formEl.value?.getBoundingClientRect().width || 0) / SPEED,
+          ease: "none",
+        });
+        tl.set(formEl.value.closest(".contactLayout"), {
+          flexWrap: "nowrap",
+        });
+      }
     }
+    return tl;
+  };
+
+  const moveBar = () => {
+    const tl = gsap.timeline({ id: "MoveBarTimeline" });
+
+    if (handEl.value) {
+      const distTest = 790;
+      tl.to(handEl.value, {
+        x: () => {
+          const handDistanceLeft =
+            handEl.value?.getBoundingClientRect().left || 0;
+
+          return -1 * handDistanceLeft;
+        },
+        duration: () => {
+          const handDistanceLeft =
+            handEl.value?.getBoundingClientRect().left || 0;
+
+          return (handDistanceLeft / SPEED) * 1.0;
+        },
+        ease: "none",
+      });
+      tl.set(
+        handEl.value,
+        {
+          opacity: 0,
+        },
+        ">",
+      );
+    }
+
+    return tl;
   };
 
   const foldFinger = (
@@ -329,14 +525,6 @@ export function useHandAnimation(
 
     gsap.killTweensOf([fingerEl, tipEl, baseEl]);
 
-    const tl = gsap.timeline({ delay });
-    const middleFinger = async () => {
-      resetTopFingerRotationZ();
-      // 1. On ferme tout d'abord
-      await foldFingers(true);
-      // 2. Puis on lève spécifiquement le majeur
-      await foldFinger(2, false, 0);
-    };
     const phalanxBorderRadius = 5;
     const phalanxBorderTopRadius = 10;
     const foldedPhalanxBorderTopRadius = 20;
@@ -345,6 +533,7 @@ export function useHandAnimation(
       ? `${customFoldedBaseHeight}px`
       : `${fingerBaseheight(fingerIndex)}px`;
 
+    const tl = gsap.timeline({ delay }); // La timeline pour cette opération de pliage de doigt
     tl.to(
       tipEl,
       {
@@ -389,13 +578,18 @@ export function useHandAnimation(
   };
 
   const foldThumb = (fold: boolean) => {
-    foldFinger(0, fold, 0, 35);
+    const tl = foldFinger(0, fold, 0, 35);
+    return tl; // Retourne la timeline du pliage du pouce
   };
 
   const foldFingers = (fold: boolean, skippedTopFingersIndex?: number) => {
-    const topFingersDone = foldTopFingers(fold, skippedTopFingersIndex);
-    foldThumb(fold);
-    return topFingersDone;
+    // Collectez les timelines de pliage pour les topFingers et le pouce
+    const topFingersCompletion = foldTopFingers(fold, skippedTopFingersIndex);
+    const thumbTl = foldThumb(fold);
+
+    // Retournez la completion la plus longue pour les topFingers
+    // Si vous aviez une master timeline ici, ce serait plus simple à gérer
+    return topFingersCompletion;
   };
 
   // Animations
@@ -403,7 +597,17 @@ export function useHandAnimation(
     resetTopFingerRotationZ();
     foldTopFingers(false);
     foldThumb(false);
-    setThumbRotation(baseThumbRotation.x, baseThumbRotation.z);
+    // setThumbRotation(baseThumbRotation.x, baseThumbRotation.z); // Ceci crée un tween global
+    // Mieux vaut utiliser gsap.to directement ou l'ajouter à une timeline.
+    if (thumbEl.value) {
+      gsap.to(thumbEl.value, {
+        rotationX: baseThumbRotation.x,
+        rotationZ: baseThumbRotation.z,
+        duration: fingerRotateDuration,
+        ease: "power2.out",
+        overwrite: "auto",
+      });
+    }
     startWaveMotion();
   };
 
@@ -426,11 +630,47 @@ export function useHandAnimation(
     foldFingers(true, 1);
   };
 
-  const thumbYes = () => {};
+  const thumbYes = () => {
+    successRevealQueued = true;
+    if (wipeMasterTimeline) {
+      return;
+    }
 
-  const wipeForm = async () => {
-    await morphIntoBar();
-    slideOutOfScreen();
+    playSuccessReveal();
+  };
+
+  const wipeForm = () => {
+    if (ctx) {
+      lockScroll();
+
+      ctx.add(() => {
+        const masterWipeTl = gsap.timeline({ id: "WipeFormMasterTimeline" });
+        wipeMasterTimeline = masterWipeTl;
+
+        const morphTl = morphIntoBar();
+        const slideTl = moveBar();
+        const closeFormTl = closeForm();
+        const revealTl = playSuccessReveal();
+
+        const gap =
+          (handEl.value?.getBoundingClientRect().left || 0) -
+          (formEl.value?.getBoundingClientRect().right || 0);
+        const headStart = Math.max(gap, 0) / SPEED;
+
+        masterWipeTl
+          .add(morphTl)
+          .add(slideTl)
+          .add(closeFormTl, `<+=${headStart}`)
+          .add(revealTl);
+
+        if (typeof window !== "undefined" && gsDevToolsInstance) {
+          gsDevToolsInstance.kill();
+          gsDevToolsInstance = GSDevTools.create({ animation: masterWipeTl });
+        }
+      });
+    } else {
+      morphIntoBar().then(() => moveBar());
+    }
   };
 
   // Launch animations directly from the state
@@ -439,8 +679,6 @@ export function useHandAnimation(
       case "idle":
       case "active":
         wave();
-        // setBasePose();
-        // wipeForm();
         return;
       case "warning":
       case "error":
@@ -474,16 +712,20 @@ export function useHandAnimation(
     rootEl.value = root;
     await nextTick();
     if (!rootEl.value) return;
-    ctx = gsap.context(() => {
-      setBasePose();
-      applyState(stateRef.value);
-    }, rootEl.value);
 
-    // watch stateRef inside composable
-    watch(stateRef, (next) => {
-      if (!ctx) return;
-      ctx.add(() => applyState(next));
-    });
+    if (typeof window !== "undefined") {
+      ctx = gsap.context(() => {
+        // gsDevToolsInstance = GSDevTools.create(); // debug
+        setBasePose();
+        applyState(stateRef.value);
+      }, rootEl.value);
+
+      // watch stateRef inside composable
+      watch(stateRef, (next) => {
+        if (!ctx) return;
+        ctx.add(() => applyState(next));
+      });
+    }
   };
 
   const destroy = () => {
@@ -495,7 +737,18 @@ export function useHandAnimation(
     fingerNoDelayTween?.kill();
     fingerNoDelayTween = null;
     fingerNoTween = null;
+    successRevealTween?.kill();
+    successRevealTween = null;
+    successWaveTween?.kill();
+    successWaveTween = null;
+    successRevealQueued = false;
+    wipeMasterTimeline = null;
     fingerMap.value.clear();
+
+    if (gsDevToolsInstance) {
+      gsDevToolsInstance.kill();
+      gsDevToolsInstance = null;
+    }
   };
 
   onBeforeUnmount(() => {
@@ -511,6 +764,21 @@ export function useHandAnimation(
     setFingerRef,
     setHandRef,
     setPalmRef,
+    setFormRef,
+    setHandWrapperRef,
+    setContactLayoutRef,
+    successRevealEl,
+    successHandEl,
+    successTextEl,
+    setSuccessRevealRef: (el: HTMLElement | null) => {
+      successRevealEl.value = el;
+    },
+    setSuccessHandRef: (el: HTMLElement | null) => {
+      successHandEl.value = el;
+    },
+    setSuccessTextRef: (el: HTMLElement | null) => {
+      successTextEl.value = el;
+    },
     mount,
     destroy,
   };

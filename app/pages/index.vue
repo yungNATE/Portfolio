@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import initResponsiveHorizontalScroll from "../utils/responsiveHorizontalScroll";
+import initResponsiveHorizontalScroll, {
+  type ResponsiveHorizontalScrollHandle,
+} from "../utils/responsiveHorizontalScroll";
 
 const scrollWrapper = ref<HTMLElement | null>(null);
-let disposeScroll: (() => void) | null = null;
+let scrollHandle: ResponsiveHorizontalScrollHandle | null = null;
 
 function syncSectionColors() {
   const sections =
@@ -24,7 +26,7 @@ onMounted(() => {
 
   // Initialiser le scroll horizontal (si l'élément est disponible)
   if (scrollWrapper.value) {
-    disposeScroll = initResponsiveHorizontalScroll(scrollWrapper.value, {
+    scrollHandle = initResponsiveHorizontalScroll(scrollWrapper.value, {
       breakpointRatio: 1,
       portraitClass: "is-portrait",
       mapOptions: {
@@ -36,7 +38,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  disposeScroll?.();
+  scrollHandle?.dispose();
+  scrollHandle = null;
 });
 </script>
 
