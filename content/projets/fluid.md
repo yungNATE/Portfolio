@@ -36,7 +36,7 @@ tags:
 
 niveauImportance: standard
 
-visible: false
+visible: true
 ---
 
 Projet UX pour une application mobile liant bien-être et présence numérique, UV UXD1 du Master HIC.

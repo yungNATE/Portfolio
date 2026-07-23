@@ -13,7 +13,7 @@ resume: "Création du print d'un calendrier caritatif étudiant (Etu'Sexy, UTC) 
 
 contexte: "Etu'Sexy est une association étudiante de l'UTC qui produit chaque année un calendrier au profit de Toit pour le Népal, avec une association étudiante différente mise en avant chaque mois."
 
-monRole: "Co-responsable du graphisme : préparation de la page \"calendrier\" de chaque mois (en vis-à-vis de la page photo), ainsi que la gestion du print au global."
+monRole: 'Co-responsable du graphisme : préparation de la page "calendrier" de chaque mois (en vis-à-vis de la page photo), ainsi que la gestion du print au global.'
 
 stackTechnique:
   - "Figma"
@@ -26,7 +26,7 @@ tags:
 
 niveauImportance: discret
 
-visible: false
+visible: true
 ---
 
 Création du print d'un calendrier associatif étudiant de l'UTC.

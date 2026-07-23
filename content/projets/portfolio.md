@@ -40,7 +40,7 @@ tags:
 
 niveauImportance: standard
 
-visible: false
+visible: true
 ---
 
 Portfolio personnel, terrain d'exploration technique (Nuxt, GSAP, Three.js à venir) et visuel.

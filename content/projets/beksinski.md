@@ -47,7 +47,7 @@ tags:
 
 niveauImportance: phare
 
-visible: false
+visible: true
 ---
 
 Expérience web interactive en hommage à Zdzisław Beksiński, mêlant peinture, narration à embranchements et WebGL.

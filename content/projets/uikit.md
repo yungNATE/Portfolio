@@ -82,7 +82,7 @@ tags:
 
 niveauImportance: phare
 
-visible: false # en attente de screenshots (code non partageable)
+visible: true # en attente de screenshots (code non partageable)
 ---
 
 Bibliothèque de composants interne développée chez Tech'Advantage, en initiative personnelle.

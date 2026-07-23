@@ -41,7 +41,7 @@ tags:
 
 niveauImportance: discret
 
-visible: false
+visible: true
 ---
 
 Refonte graphique légère du site Wellstone, société d'immobilier d'entreprise à Paris.

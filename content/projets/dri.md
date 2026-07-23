@@ -51,7 +51,7 @@ tags:
 
 niveauImportance: phare
 
-visible: false
+visible: true
 ---
 
 Interface d'inscription à la bourse Erasmus+ pour les étudiants de l'UTC, réalisée pour la DRI dans le cadre de la Junior Entreprise UTC.

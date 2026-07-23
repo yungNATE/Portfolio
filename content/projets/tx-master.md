@@ -27,7 +27,7 @@ tags:
 
 niveauImportance: standard
 
-visible: false
+visible: true
 ---
 
 Maquette du site du Master HIC, produite dans le cadre d'une TX.

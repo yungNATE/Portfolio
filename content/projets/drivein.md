@@ -80,7 +80,7 @@ tags:
 
 niveauImportance: phare
 
-visible: false # en attente du lien démo + visuels
+visible: true # en attente du lien démo + visuels
 ---
 
 Site vitrine complet pour Drive In Production, agence de production vidéo B2B.

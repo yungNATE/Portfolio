@@ -27,7 +27,7 @@ tags:
 
 niveauImportance: discret
 
-visible: false # recommandation : à garder caché même une fois les autres publiés — voir l'avis dans la conversation
+visible: true # recommandation : à garder caché même une fois les autres publiés — voir l'avis dans la conversation
 ---
 
 Maquette de la page d'accueil pour Bulhoes Connect, spécialiste domotique/thermostats.

@@ -34,7 +34,7 @@ tags:
 
 niveauImportance: discret
 
-visible: false
+visible: true
 ---
 
 Refonte intégrale du site vitrine de Loré Finance, sur maquette externe.

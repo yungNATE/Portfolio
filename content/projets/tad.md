@@ -104,7 +104,7 @@ tags:
 
 niveauImportance: phare
 
-visible: false # repasse à true une fois les visuels ajoutés
+visible: true # repasse à true une fois les visuels ajoutés
 ---
 
 Portail des médiathèques clientes de Tech'Advantage, connecté au SIGB Syrtis.

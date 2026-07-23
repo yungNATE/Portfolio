@@ -64,7 +64,7 @@ tags:
 
 niveauImportance: standard
 
-visible: false
+visible: true
 ---
 
 Étude expérimentale sur l'impact de la couleur sur l'expérience émotionnelle en réalité virtuelle, UV ICX6 du Master HIC.

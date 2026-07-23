@@ -47,7 +47,7 @@ tags:
 
 niveauImportance: standard
 
-visible: false
+visible: true
 ---
 
 Site vitrine réalisé de A à Z pour Avatar Architectes, cabinet d'architecture.

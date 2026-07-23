@@ -37,7 +37,7 @@ tags:
 
 niveauImportance: standard
 
-visible: false
+visible: true
 ---
 
 Site e-commerce et plugin WordPress sur mesure pour la vente de merchandising d'un vidéaste.

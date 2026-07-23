@@ -34,7 +34,7 @@ tags:
 
 niveauImportance: standard
 
-visible: false
+visible: true
 ---
 
 Serious game de sensibilisation écologique (RSE) réalisé pour Airbus, dans le cadre d'une mission Junior Entreprise UTC. Projet sous NDA.

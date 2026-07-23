@@ -45,7 +45,7 @@ tags:
 
 niveauImportance: standard
 
-visible: false
+visible: true
 ---
 
 Jeu sérieux sur la biodiversité conçu pour le CREA Mont-Blanc, UV ICX1 du Master HIC.

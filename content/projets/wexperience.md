@@ -26,7 +26,7 @@ tags:
 
 niveauImportance: discret
 
-visible: false
+visible: true
 ---
 
 Rapport d'étonnement / audit UX rédigé pour Wexperience, agence d'ergonomie digitale.
