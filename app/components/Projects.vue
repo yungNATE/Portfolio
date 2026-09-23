@@ -57,63 +57,33 @@
           @pan-start="onCardLeave"
         >
           <template #item="{ item: project, size }">
-            <article
-              class="project-card"
-              :class="projectImportanceClass(project)"
-              :style="{ '--bubble-size': `${size}px` }"
-              role="listitem"
-              tabindex="0"
-              aria-describedby="resume-tooltip"
-              @mouseenter="
-                ($event) => {
-                  onHoverPrefetch(project);
-                  onCardEnter(project, $event);
-                }
-              "
-              @mousemove="onCardMove($event)"
-              @mouseleave="onCardLeave"
-              @focus="onCardFocus(project, $event)"
-              @blur="onCardLeave"
-            >
-              <!-- <MurkyThumbnail :src="coverSrc(project)" :alt="coverAlt(project)" /> -->
-              <figure class="murky-thumb">
-                <NuxtImg
-                  v-bind="coverImage"
-                  class="murky-thumb__image"
-                  :src="coverSrc(project)"
-                  :alt="coverAlt(project)"
-                  draggable="false"
-                />
-              </figure>
-
-              <h3 class="project-card__title" lang="fr">
-                {{ project.titre }}
-              </h3>
-
-              <ul
-                class="project-card__tags sr-only"
-                :aria-label="`Tags du projet ${project.titre}`"
-              >
-                <li v-for="tag in project.tags" :key="tag">
-                  {{ tag }}
-                </li>
-              </ul>
-            </article>
+            <div role="listitem" :style="{ width: `${size}px` }">
+              <ProjectDot
+                :project="project"
+                aria-describedby="resume-tooltip"
+                @open="openProject"
+                @mouseenter="
+                  ($event: MouseEvent) => {
+                    onHoverPrefetch(project);
+                    onCardEnter(project, $event);
+                  }
+                "
+                @mousemove="onCardMove($event)"
+                @mouseleave="onCardLeave"
+                @focus="onCardFocus(project, $event)"
+                @blur="onCardLeave"
+              />
+            </div>
           </template>
         </BubbleUiPan>
 
         <!-- Rendu serveur : garde les titres dans le HTML et fait rendre les
-             mêmes NuxtImg en SSR, pour que `nuxt generate` pré-génère leurs
+             mêmes images en SSR, pour que `nuxt generate` pré-génère leurs
              variantes _ipx (sinon 404 en preset static). -->
         <template #fallback>
           <ul class="sr-only">
             <li v-for="project in filteredProjects" :key="projectKey(project)">
-              <NuxtImg
-                v-bind="coverImage"
-                :src="coverSrc(project)"
-                :alt="coverAlt(project)"
-              />
-              {{ project.titre }}
+              <ProjectDot :project="project" />
             </li>
           </ul>
         </template>
@@ -139,28 +109,18 @@
       <span v-else>{{ resumeFor(hoveredProject) }}</span>
     </div>
   </Teleport>
+
+  <ProjectModal
+    :project="selectedProject"
+    :origin="selectedOrigin"
+    @close="closeProject"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onUnmounted, ref, shallowRef, watch } from "vue";
 import MurkyThumbnail from "./MurkyThumbnail.vue";
-
-type Cover = {
-  src?: string;
-  alt?: string;
-  legende?: string;
-  type?: string;
-};
-
-type ProjectItem = {
-  path?: string;
-  titre: string;
-  tags: string[];
-  couverture?: Cover;
-  niveauImportance?: "phare" | "standard" | "discret";
-  ordreAffichage?: number;
-  visible?: boolean;
-};
+import type { ProjectItem } from "~/types/project";
 
 type DecoratedProject = ProjectItem & { __index: number };
 
@@ -169,6 +129,9 @@ const { data: fetchedProjects } = await useAsyncData("projects-grid", () =>
     .select(
       "path",
       "titre",
+      // Infos affichées dès l'ouverture de la modale (et dans l'infobulle).
+      "sousTitre",
+      "resume",
       "tags",
       "couverture",
       "niveauImportance",
@@ -181,14 +144,32 @@ const { data: fetchedProjects } = await useAsyncData("projects-grid", () =>
 
 const activeTags = ref<string[]>([]);
 
+// Projet ouvert via un ProjectDot, affiché par ProjectModal qui s'anime
+// depuis la bulle d'origine.
+const selectedProject = ref<ProjectItem | null>(null);
+const selectedOrigin = shallowRef<HTMLElement | null>(null);
+
+function openProject(project: ProjectItem, origin: HTMLElement) {
+  hoveredProject.value = null;
+  selectedOrigin.value = origin;
+  selectedProject.value = project;
+}
+
+function closeProject() {
+  selectedProject.value = null;
+  selectedOrigin.value = null;
+  // Le focus vient d'être rendu à la bulle : pas d'infobulle par-dessus.
+  hoveredProject.value = null;
+}
+
 const hoveredProject = ref<ProjectItem | null>(null);
 const tooltipPos = ref({ x: 0, y: 0 });
 const tooltipEl = ref<HTMLElement | null>(null);
 const rawCursor = ref({ x: 0, y: 0 });
 const TOOLTIP_OFFSET = 18;
 
-// Cache des résumés chargés à la demande : pas dans le fetch initial,
-// pour ne rien charger d'inutile sur mobile (pas de hover là-bas).
+// Le résumé est désormais dans le fetch initial (utilisé par la modale) ;
+// ce cache à la demande ne sert plus que de repli s'il manque.
 const resumeCache = ref<Record<string, string>>({});
 const resumeLoading = ref<Record<string, boolean>>({});
 
@@ -201,12 +182,14 @@ function isResumeLoading(project: ProjectItem) {
 }
 
 function resumeFor(project: ProjectItem) {
-  return resumeCache.value[projectKey(project)] ?? "";
+  return project.resume ?? resumeCache.value[projectKey(project)] ?? "";
 }
 
 async function ensureResumeLoaded(project: ProjectItem) {
   const key = projectKey(project);
-  if (key in resumeCache.value || resumeLoading.value[key] || !project.path) {
+  if (
+    project.resume !== undefined ||
+    key in resumeCache.value || resumeLoading.value[key] || !project.path) {
     return;
   }
   resumeLoading.value[key] = true;
@@ -396,27 +379,6 @@ function clearFilters() {
   activeTags.value = [];
 }
 
-// Partagé entre les bulles et le fallback SSR : les URLs _ipx doivent être
-// identiques pour que les images pré-générées soient celles affichées.
-const coverImage = {
-  width: 190,
-  height: 190,
-  fit: "cover",
-  densities: "x1 x2",
-  quality: 68,
-  loading: "lazy",
-  format: "webp",
-} as const;
-
-function coverSrc(project: ProjectItem) {
-  const src = project.couverture?.src?.trim();
-  return src ? src : "/basicCover.png";
-}
-
-function coverAlt(project: ProjectItem) {
-  return project.couverture?.alt?.trim() || project.titre;
-}
-
 function importanceLabel(project: ProjectItem) {
   switch (project.niveauImportance) {
     case "phare":
@@ -426,12 +388,6 @@ function importanceLabel(project: ProjectItem) {
     default:
       return "Projet standard";
   }
-}
-
-function projectImportanceClass(project: ProjectItem) {
-  return project.niveauImportance
-    ? `is-${project.niveauImportance}`
-    : "is-standard";
 }
 </script>
 
@@ -544,73 +500,6 @@ function projectImportanceClass(project: ProjectItem) {
     height: 70svh;
     min-height: 360px;
   }
-}
-
-.project-card {
-  position: relative;
-  display: block;
-  width: var(--bubble-size);
-  height: var(--bubble-size);
-  overflow: hidden;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
-  transition: border-color 0.25s ease;
-
-  &:hover,
-  &:focus-visible {
-    border-color: rgba(255, 255, 255, 0.55);
-  }
-
-  &:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.7);
-    outline-offset: 3px;
-  }
-
-  &.is-phare {
-    border: 2px solid rgba(255, 255, 255, 0.45);
-  }
-
-  &.is-discret {
-    opacity: 0.8;
-  }
-}
-
-.murky-thumb {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(transparent 35%, rgba(0, 0, 0, 0.75));
-  }
-}
-
-.murky-thumb__image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  -webkit-user-drag: none;
-}
-
-.project-card__title {
-  // Pas de padding ici : il laisserait voir les lignes coupées par line-clamp.
-  position: absolute;
-  inset: auto 15% 17%;
-  text-align: center;
-  font-size: clamp(0.6rem, calc(var(--bubble-size) * 0.075), 0.9rem);
-  line-height: 1.15;
-  hyphens: auto;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  overflow: hidden;
 }
 
 .project-card__importance {
