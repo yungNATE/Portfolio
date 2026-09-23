@@ -2,7 +2,7 @@
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   css: ["@/assets/css/reset.css", "@/assets/css/global.scss"],
-  modules: ["@nuxt/fonts", "@nuxt/content"],
+  modules: ["@nuxt/fonts", "@nuxt/content", "@nuxt/image"],
 
   ssr: true,
   nitro: {

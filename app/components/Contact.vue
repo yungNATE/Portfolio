@@ -1,5 +1,5 @@
 <template>
-  <section class="contact" aria-labelledby="contact-title">
+  <div class="contact" aria-labelledby="contact-title">
     <div class="contactLayout" ref="contactLayoutRef">
       <div class="formWrapper">
         <div class="formLayout" ref="formRef">
@@ -107,7 +107,7 @@
         />
       </aside>
     </div>
-  </section>
+  </div>
 </template>
 
 <script lang="ts" setup>

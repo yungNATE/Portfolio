@@ -44,17 +44,31 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <MagneticCursor />
+
   <div ref="scrollWrapper" class="horizontal-scroll-wrapper">
     <section id="intro" data-color="#474aff">
       <Intro />
+      <PointerGradientSection
+        background-color="#ff9f0a"
+        gradient-color="#474aff"
+      />
     </section>
 
     <section id="work" data-color="#ff0073">
-      <Wip />
+      <Projects />
+      <PointerGradientSection
+        background-color="#61FFB8"
+        gradient-color="#ff0073"
+      />
     </section>
 
     <section id="contact" data-color="#f2e8e5">
       <Contact />
+      <PointerGradientSection
+        background-color="#28738A"
+        gradient-color="#f2e8e5"
+      />
     </section>
   </div>
 </template>
@@ -68,6 +82,7 @@ onBeforeUnmount(() => {
   &:not(.is-portrait) {
     > section {
       min-width: 100vw;
+      width: fit-content;
       height: 100%;
     }
   }
@@ -81,14 +96,15 @@ onBeforeUnmount(() => {
 
   > section {
     isolation: isolate;
+    position: relative;
 
     color: white;
     flex: 0 0 auto;
-    padding: 20px;
 
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
+    flex-direction: column;
 
     background-color: var(--section-color);
 
@@ -100,6 +116,7 @@ onBeforeUnmount(() => {
     > div {
       height: 100%;
       width: 100%;
+      padding: 20px;
     }
   }
 }

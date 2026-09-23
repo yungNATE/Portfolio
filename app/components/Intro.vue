@@ -94,7 +94,16 @@ onBeforeUnmount(() => {
     class="introWrapper"
     :class="{ 'is-portrait': screenMode === 'vertical' }"
   >
-    <pre ref="asciiArt" class="ascii-art"></pre>
+    <!-- <pre ref="asciiArt" class="ascii-art"></pre> -->
+    <!-- <AsciiVideoBackground
+      src="/coucou.mp4"
+      mode="dots"
+      color="#000"
+      :cols="140"
+      :opacity="0.2"
+    /> -->
+
+    <WipNotice />
 
     <ul
       class="titles"
@@ -142,7 +151,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   flex-direction: row;
-  min-height: 100%;
+  // min-height: 100%;
   overflow: hidden;
   gap: 50px;
 

@@ -16,7 +16,8 @@ export type HandState =
   | "insult"
   | "sending"
   | "success"
-  | "error";
+  | "error"
+  | "closeBy";
 
 type HandAnimationIntent =
   | "wave"
@@ -57,11 +58,13 @@ export function useHandAnimation(
   let successWaveTween: gsap.core.Tween | null = null;
   let successRevealQueued = false;
   let wipeMasterTimeline: gsap.core.Timeline | null = null;
+  let isCloseBy = false;
 
   const baseIdleDuration = 1.9;
   const classicFoldDuration = 1 / 3;
   const fingerRotateDuration = 0.28;
   const baseThumbRotation = { x: 0, z: -38 };
+  const closeByThreshold = 220; // distance (px) déclenchant le mode "closeBy"
 
   const getTopFingers = () => {
     // Return ordered array of finger elements sorted by data-index
@@ -76,6 +79,13 @@ export function useHandAnimation(
     const baseHeight =
       fingersData[fingerIndex]?.phalanxBaseHeight ?? multiplicator;
     return baseHeight;
+  };
+
+  const getHandCenter = () => {
+    const rect = (handWrapperEl.value ?? handEl.value)?.getBoundingClientRect();
+    if (!rect) return null;
+
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   };
 
   const setFingerRef = (el: HTMLElement | null, index: number) => {
@@ -611,6 +621,15 @@ export function useHandAnimation(
     startWaveMotion();
   };
 
+  const indexUp = async () => {
+    resetTopFingerRotationZ();
+
+    await Promise.all([
+      foldFinger(1, false, 0), // Index se lève
+      foldFingers(true, 0), // Les autres doigts (et le pouce) se plient
+    ]);
+  };
+
   const no = async () => {
     resetTopFingerRotationZ();
 
@@ -693,6 +712,9 @@ export function useHandAnimation(
       case "success":
         thumbYes();
         return;
+      case "closeBy":
+        indexUp();
+        return;
     }
   };
 
@@ -706,6 +728,44 @@ export function useHandAnimation(
     }
 
     stateToAnimationIntent(state);
+  };
+
+  const rotateHandTowardPointer = (pointerX: number, pointerY: number) => {
+    const center = getHandCenter();
+    if (!center || !handEl.value) return;
+
+    // Angle entre l'axe vertical (pose de repos) et le pointeur
+    const angleDeg =
+      Math.atan2(pointerX - center.x, center.y - pointerY) * (180 / Math.PI);
+
+    gsap.to(handEl.value, {
+      rotationZ: angleDeg,
+      duration: 0.35,
+      ease: "power2.out",
+      overwrite: "auto",
+    });
+  };
+
+  const handlePointerMove = (e: PointerEvent) => {
+    if (!ctx) return;
+    const center = getHandCenter();
+    console.log(center);
+
+    if (!center) return;
+
+    const distance = Math.hypot(e.clientX - center.x, e.clientY - center.y);
+    // console.log(distance);
+
+    if (distance < closeByThreshold) {
+      if (!isCloseBy) {
+        isCloseBy = true;
+        ctx.add(() => applyState("closeBy"));
+      }
+      ctx.add(() => rotateHandTowardPointer(e.clientX, e.clientY));
+    } else if (isCloseBy) {
+      isCloseBy = false;
+      ctx.add(() => applyState(stateRef.value)); // retour à l'état précédent
+    }
   };
 
   const mount = async (root: HTMLElement | null) => {
@@ -722,9 +782,12 @@ export function useHandAnimation(
 
       // watch stateRef inside composable
       watch(stateRef, (next) => {
-        if (!ctx) return;
+        if (!ctx || isCloseBy) return; // "closeBy" prend la priorité
         ctx.add(() => applyState(next));
       });
+
+      // détection de proximité du pointeur pour le mode "closeBy"
+      window.addEventListener("pointermove", handlePointerMove);
     }
   };
 
@@ -744,6 +807,11 @@ export function useHandAnimation(
     successRevealQueued = false;
     wipeMasterTimeline = null;
     fingerMap.value.clear();
+
+    if (typeof window !== "undefined") {
+      window.removeEventListener("pointermove", handlePointerMove);
+    }
+    isCloseBy = false;
 
     if (gsDevToolsInstance) {
       gsDevToolsInstance.kill();
