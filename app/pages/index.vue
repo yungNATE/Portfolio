@@ -48,6 +48,7 @@ onBeforeUnmount(() => {
 
   <div ref="scrollWrapper" class="horizontal-scroll-wrapper">
     <section id="intro" data-color="#474aff">
+      <ReliefBackground />
       <Intro />
       <PointerGradientSection
         background-color="#ff9f0a"
@@ -56,6 +57,7 @@ onBeforeUnmount(() => {
     </section>
 
     <section id="work" data-color="#ff0073">
+      <ReliefBackground />
       <Projects />
       <PointerGradientSection
         background-color="#61FFB8"
@@ -64,6 +66,7 @@ onBeforeUnmount(() => {
     </section>
 
     <section id="contact" data-color="#f2e8e5">
+      <ReliefBackground />
       <Contact />
       <PointerGradientSection
         background-color="#28738A"
