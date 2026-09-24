@@ -9,6 +9,7 @@ body,
 }
 :root {
   --background-color: #474aff;
+  --section-title-size: clamp(2.25rem, 6vw, 4.5rem);
 }
 
 // Titles styles (Google Sans Code font and .h1, .h2, .h3 classes)
@@ -19,6 +20,14 @@ h3,
 .h2,
 .h3 {
   font-weight: 800;
+}
+
+// Main title of each section (Intro, Projets, Contact), whatever its heading level
+.section-title {
+  margin: 0;
+  font-size: var(--section-title-size);
+  font-weight: 800;
+  line-height: 0.95;
 }
 
 .a {

@@ -1,18 +1,15 @@
 <template>
   <div class="projects-grid" aria-labelledby="projects-title">
     <div class="projects-grid__intro">
-      <header class="projects-grid__header">
-        <div>
-          <p class="projects-grid__eyebrow">Projets</p>
-          <h2 id="projects-title" class="projects-grid__title">
-            Grille filtrable
-          </h2>
-        </div>
+      <div class="projects-grid__header">
+        <SectionHeading id="projects-title" eyebrow="Fait main, avec soin">
+          Projets
+        </SectionHeading>
 
         <p class="projects-grid__count" aria-live="polite">
           {{ resultsLabel }}
         </p>
-      </header>
+      </div>
 
       <div
         class="projects-grid__filters"
@@ -417,20 +414,6 @@ function importanceLabel(project: ProjectItem) {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-}
-
-.projects-grid__eyebrow {
-  margin: 0 0 0.35rem;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 0.72rem;
-  opacity: 0.75;
-}
-
-.projects-grid__title {
-  margin: 0;
-  font-size: clamp(2rem, 4vw, 4rem);
-  line-height: 0.95;
 }
 
 .projects-grid__count {

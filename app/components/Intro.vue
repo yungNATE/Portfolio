@@ -1,66 +1,53 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
 import PlayASCIIFrames from "../utils/PlayASCIIFrames_fixed";
 import type { PlayASCIIFramesInstance } from "../utils/PlayASCIIFrames_fixed";
 import { frames } from "../assets/js/ASCIISelfieFrames2.js";
 import { useScreenInfo } from "../utils/screen";
 
+const roles = [
+  "Informaticien",
+  "Développeur Frontend",
+  "& créatif",
+  "UX Designer",
+  "Motion Enthusiast",
+  "Light Enthusiast",
+];
+
 const asciiArt = ref<HTMLElement | null>(null);
-const titles = ref<HTMLElement | null>(null);
 const { screenMode } = useScreenInfo();
+const activeIndex = ref(0);
 let asciiPlayer: PlayASCIIFramesInstance | null = null;
-let titleNodes: HTMLElement[] = [];
-let activeIndex = 0;
 let titlesInterval: number | null = null;
+
+// Circular distance to the active role, in [-n/2, n/2[ → -1 = previous, 0 = active, 1 = next
+const roleOffsets = computed(() => {
+  const n = roles.length;
+  return roles.map((_, index) => {
+    const offset = (index - activeIndex.value + n) % n;
+    return offset >= n / 2 ? offset - n : offset;
+  });
+});
 
 function stopTitleAnimation() {
   if (titlesInterval) {
     clearInterval(titlesInterval);
     titlesInterval = null;
   }
-
-  if (titles.value) {
-    titles.value.style.transform = "";
-  }
-
-  titleNodes.forEach((node, index) => {
-    node.classList.toggle("active", index === 0);
-  });
-
-  activeIndex = 0;
+  activeIndex.value = 0;
 }
 
 function startTitleAnimation() {
   stopTitleAnimation(); // Clean reset before starting
-  let isHorizontal = screenMode.value === "horizontal";
 
-  if (!titles.value) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     return;
   }
 
-  titleNodes = Array.from(titles.value.children) as HTMLElement[];
-
-  if (titleNodes.length === 0) {
-    return;
-  }
-
-  activeIndex = 0;
   const delay = 2000; // ms
   titlesInterval = window.setInterval(() => {
-    const prev = activeIndex;
-    activeIndex = (activeIndex + 1) % titleNodes.length;
-    titleNodes[prev]?.classList.remove("active");
-    titleNodes[activeIndex]?.classList.add("active");
-    isHorizontal ? centerActiveTitle(titleNodes, activeIndex) : null;
+    activeIndex.value = (activeIndex.value + 1) % roles.length;
   }, delay);
-}
-
-function centerActiveTitle(nodes: HTMLElement[], index: number) {
-  let size = 48; // px
-  const offset = size * index - size;
-  if (titles.value) {
-    titles.value.style.transform = `translateY(${-offset}px)`;
-  }
 }
 
 onMounted(async () => {
@@ -75,11 +62,6 @@ onMounted(async () => {
     asciiPlayer.play();
   }
 
-  // Setup title animation (enabled only in horizontal mode)
-  startTitleAnimation();
-});
-
-watch(screenMode, () => {
   startTitleAnimation();
 });
 
@@ -105,21 +87,25 @@ onBeforeUnmount(() => {
 
     <WipNotice />
 
-    <ul
-      class="titles"
-      ref="titles"
-      aria-label="Présentation de Nathan Martinigol"
-    >
-      <li class="active">
-        <h1>Nathan Martinigol</h1>
-      </li>
-      <li class="h1"><p>Informaticien</p></li>
-      <li class="h1"><p>Développeur Frontend</p></li>
-      <li class="h1"><p>& créatif</p></li>
-      <li class="h1"><p>UX Designer</p></li>
-      <li class="h1"><p>Motion Enthusiast</p></li>
-      <li class="h1"><p>Light Enthusiast</p></li>
-    </ul>
+    <div class="titles">
+      <SectionHeading eyebrow="Salut, moi c'est" :level="1">
+        Nathan <br class="name-break" />Martinigol
+      </SectionHeading>
+      <p class="sr-only">{{ roles.join(", ") }}</p>
+      <ul class="roles" aria-hidden="true">
+        <li
+          v-for="(role, index) in roles"
+          :key="role"
+          :class="{
+            active: roleOffsets[index] === 0,
+            near: Math.abs(roleOffsets[index] ?? 0) === 1,
+          }"
+          :style="{ '--offset': roleOffsets[index] }"
+        >
+          {{ role }}
+        </li>
+      </ul>
+    </div>
 
     <SkillGraph />
 
@@ -168,40 +154,64 @@ onBeforeUnmount(() => {
     }
   }
 
+  &.is-portrait .name-break {
+    display: block;
+  }
+
   .titles {
     position: relative;
+    align-self: flex-start;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    transition: transform 0.4s ease;
+    gap: 0.5em;
+    color: white;
 
-    .animated {
-      height: 48px;
+    .name-break {
+      display: none;
     }
+  }
+
+  // Roller: 3 visible lines (previous / active / next), roles slide upward
+  .roles {
+    --line: 1.3em;
+    --duration: 0.6s;
+
+    position: relative;
+    height: calc(var(--line) * 3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: calc(var(--section-title-size) * 0.5);
+    font-weight: bold;
 
     li {
-      font-size: clamp(1rem, 7vw, 3rem);
-      font-weight: bold;
-      margin: 0;
-      line-height: 1;
+      position: absolute;
+      top: var(--line); // Middle slot
+      left: 0;
+      height: var(--line);
+      line-height: var(--line);
+      white-space: nowrap;
+      transform-origin: left center;
+      transform: translateY(calc(var(--offset) * 100%)) scale(0.6);
+      opacity: 0;
       transition:
-        color 0.4s ease,
-        transform 0.4s ease;
+        transform var(--duration) cubic-bezier(0.65, 0, 0.35, 1),
+        opacity var(--duration) ease;
 
-      color: rgba(white, 0.2);
-
-      &.active {
-        color: white;
+      &.near {
+        transform: translateY(calc(var(--offset) * 100%)) scale(0.75);
+        opacity: 0.25;
       }
 
-      h1 {
-        font-size: inherit;
-        font-weight: inherit;
-        margin: 0;
-        line-height: inherit;
+      &.active {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      li {
+        transition: none;
       }
     }
   }

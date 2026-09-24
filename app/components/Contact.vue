@@ -1,10 +1,13 @@
 <template>
   <div class="contact" aria-labelledby="contact-title">
+    <SectionHeading id="contact-title" eyebrow="Un projet, une idée, un café ?">
+      Me contacter
+    </SectionHeading>
+
     <div class="contactLayout" ref="contactLayoutRef">
       <div class="formWrapper">
         <div class="formLayout" ref="formRef">
           <div class="header">
-            <h2 id="contact-title">Me contacter</h2>
             <p>
               Vous avez une question, une proposition de projet ou vous voulez
               simplement dire bonjour ? N'hésitez pas à m'envoyer un message en
@@ -302,14 +305,11 @@ async function onSubmit() {
 </script>
 
 <style lang="scss" scoped>
+// Same frame as the other sections: heading top-left, content below
 .contact {
-  margin: 2rem 10vw;
-  padding: 1.6rem;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.02),
-    rgba(255, 255, 255, 0.01)
-  );
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 .contactLayout {
@@ -317,6 +317,13 @@ async function onSubmit() {
   // flex-wrap: wrap;
   gap: 2rem;
   justify-content: center;
+  margin-inline: 10vw;
+  padding: 1.6rem;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.01)
+  );
 }
 
 .formWrapper {
