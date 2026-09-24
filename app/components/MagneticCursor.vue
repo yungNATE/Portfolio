@@ -10,6 +10,29 @@
     aria-hidden="true"
   >
     <div ref="cursorDot" class="magnetic-cursor__dot" />
+
+    <!-- Zone qui se déplace au cliquer-glisser ([data-cursor="grab"]) :
+         le curseur natif étant masqué, c'est lui qui l'annonce. -->
+    <div
+      ref="cursorLabel"
+      class="magnetic-cursor__label"
+      :class="[
+        `is-${grabAxis ?? 'xy'}`,
+        { 'is-visible': grabAxis, 'is-grabbing': grabAxis && isPressed },
+      ]"
+    >
+      <!-- Main (icône "hand" de Lucide, ISC) qui saisit et tire dans le
+           sens du déplacement possible. -->
+      <svg viewBox="0 0 24 24">
+        <path d="M18 11V6a2 2 0 0 0-4 0" />
+        <path d="M14 10V4a2 2 0 0 0-4 0v2" />
+        <path d="M10 10.5V6a2 2 0 0 0-4 0v8" />
+        <path
+          d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"
+        />
+      </svg>
+      Glisser
+    </div>
   </div>
 </template>
 
@@ -37,6 +60,12 @@ const props = defineProps({
 
 const container = ref(null);
 const cursorDot = ref(null);
+const cursorLabel = ref(null);
+
+// Axe de la zone [data-cursor="grab"] survolée ("x", "y" ou "xy"),
+// null en dehors. Lu dans data-cursor-axis, "xy" par défaut.
+const grabAxis = ref(null);
+const isPressed = ref(false);
 
 // Passe à true au premier mouvement réel de la souris.
 // Évite l'effet "pop" depuis le centre de l'écran au chargement.
@@ -774,6 +803,9 @@ function updateCursorVisual() {
   if (cursorDot.value) {
     cursorDot.value.style.transform = `translate3d(${mouse.x}px, ${mouse.y}px, 0) translate(-50%, -50%)`;
   }
+  if (cursorLabel.value) {
+    cursorLabel.value.style.transform = `translate3d(${mouse.x}px, ${mouse.y}px, 0)`;
+  }
 }
 
 /**
@@ -790,11 +822,27 @@ function onPointerMove(event) {
   if (!isVisible.value) {
     isVisible.value = true;
   }
+
+  // Pendant un drag, la zone capture le pointeur : event.target reste
+  // dans la zone, l'état grab tient jusqu'au relâchement.
+  const zone = event.target?.closest?.('[data-cursor="grab"]');
+  const axis = zone ? zone.dataset.cursorAxis || "xy" : null;
+  if (axis !== grabAxis.value) {
+    grabAxis.value = axis;
+  }
 }
 
 function onPointerLeave() {
   mouse.active = false;
   isVisible.value = false;
+}
+
+function onPointerDown(event) {
+  if (event.button === 0) isPressed.value = true;
+}
+
+function onPointerUp() {
+  isPressed.value = false;
 }
 
 /**
@@ -904,6 +952,10 @@ onMounted(async () => {
 
   window.addEventListener("pointerleave", onPointerLeave);
 
+  window.addEventListener("pointerdown", onPointerDown, { passive: true });
+  window.addEventListener("pointerup", onPointerUp, { passive: true });
+  window.addEventListener("pointercancel", onPointerUp, { passive: true });
+
   window.addEventListener("resize", resize);
 
   /**
@@ -940,6 +992,10 @@ onBeforeUnmount(() => {
   window.removeEventListener("pointermove", onPointerMove);
 
   window.removeEventListener("pointerleave", onPointerLeave);
+
+  window.removeEventListener("pointerdown", onPointerDown);
+  window.removeEventListener("pointerup", onPointerUp);
+  window.removeEventListener("pointercancel", onPointerUp);
 
   window.removeEventListener("resize", resize);
 
@@ -1016,6 +1072,90 @@ watch(
 
   will-change: transform;
   mix-blend-mode: var(--cursor-blend, difference);
+}
+
+.magnetic-cursor__label {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+
+  /* Centré au-dessus du dot : en bas à droite, la place est déjà prise
+     par les infobulles qui suivent le curseur (ex. résumé des projets). */
+  translate: -50% calc(-100% - 14px);
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(20, 20, 18, 0.9);
+  backdrop-filter: blur(8px);
+  color: #fff8f2;
+  font-size: 0.75rem;
+  white-space: nowrap;
+
+  z-index: 2;
+  will-change: transform;
+
+  opacity: 0;
+  scale: 0.8;
+  transform-origin: bottom center;
+  transition:
+    opacity 0.2s ease,
+    scale 0.2s ease;
+}
+
+.magnetic-cursor__label.is-visible {
+  opacity: 1;
+  scale: 1;
+}
+
+/* Pendant la saisie : simple fondu, la bulle reste à sa taille. */
+.magnetic-cursor__label.is-visible.is-grabbing {
+  opacity: 0;
+}
+
+.magnetic-cursor__label svg {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  /* La main se referme, tire dans le sens du déplacement possible, se
+     rouvre et revient. */
+  --pull-x: 4px;
+  --pull-y: 4px;
+  animation: magnetic-cursor-grab 1.8s ease-in-out infinite;
+}
+
+.magnetic-cursor__label.is-x svg {
+  --pull-x: 5px;
+  --pull-y: 0px;
+}
+
+.magnetic-cursor__label.is-y svg {
+  --pull-x: 0px;
+  --pull-y: 5px;
+}
+
+@keyframes magnetic-cursor-grab {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  20% {
+    transform: translate(0, 0) scale(0.82);
+  }
+  55% {
+    transform: translate(var(--pull-x), var(--pull-y)) scale(0.82);
+  }
+  75% {
+    transform: translate(var(--pull-x), var(--pull-y)) scale(1);
+  }
 }
 
 @media (hover: none), (pointer: coarse) {
