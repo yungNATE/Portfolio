@@ -16,13 +16,9 @@
     <div
       ref="cursorLabel"
       class="magnetic-cursor__label"
-      :class="[
-        `is-${grabAxis ?? 'xy'}`,
-        { 'is-visible': grabAxis, 'is-grabbing': grabAxis && isPressed },
-      ]"
+      :class="{ 'is-visible': grabAxis, 'is-grabbing': grabAxis && isPressed }"
     >
-      <!-- Main (icône "hand" de Lucide, ISC) qui saisit et tire dans le
-           sens du déplacement possible. -->
+      <!-- Main (icône "hand" de Lucide, ISC). -->
       <svg viewBox="0 0 24 24">
         <path d="M18 11V6a2 2 0 0 0-4 0" />
         <path d="M14 10V4a2 2 0 0 0-4 0v2" />
@@ -1097,20 +1093,16 @@ watch(
   z-index: 2;
   will-change: transform;
 
+  /* Suit toujours le pointeur, masquée : seule l'opacité change. */
   opacity: 0;
-  scale: 0.8;
-  transform-origin: bottom center;
-  transition:
-    opacity 0.2s ease,
-    scale 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
 .magnetic-cursor__label.is-visible {
   opacity: 1;
-  scale: 1;
 }
 
-/* Pendant la saisie : simple fondu, la bulle reste à sa taille. */
+/* Pendant la saisie : simple fondu. */
 .magnetic-cursor__label.is-visible.is-grabbing {
   opacity: 0;
 }
@@ -1125,36 +1117,16 @@ watch(
   stroke-linecap: round;
   stroke-linejoin: round;
 
-  /* La main se referme, tire dans le sens du déplacement possible, se
-     rouvre et revient. */
-  --pull-x: 4px;
-  --pull-y: 4px;
   animation: magnetic-cursor-grab 1.8s ease-in-out infinite;
-}
-
-.magnetic-cursor__label.is-x svg {
-  --pull-x: 5px;
-  --pull-y: 0px;
-}
-
-.magnetic-cursor__label.is-y svg {
-  --pull-x: 0px;
-  --pull-y: 5px;
 }
 
 @keyframes magnetic-cursor-grab {
   0%,
   100% {
-    transform: translate(0, 0) scale(1);
+    opacity: 1;
   }
-  20% {
-    transform: translate(0, 0) scale(0.82);
-  }
-  55% {
-    transform: translate(var(--pull-x), var(--pull-y)) scale(0.82);
-  }
-  75% {
-    transform: translate(var(--pull-x), var(--pull-y)) scale(1);
+  50% {
+    opacity: 0.4;
   }
 }
 
