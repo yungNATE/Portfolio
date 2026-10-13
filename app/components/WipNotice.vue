@@ -2,7 +2,7 @@
   <div class="wip-notice" role="status">
     <span class="wip-notice__icon" aria-hidden="true">🚧</span>
     <span class="wip-notice__text"
-      ><slot>Ce site en cours de développement</slot></span
+      ><slot>Site en cours de développement</slot></span
     >
   </div>
 </template>
