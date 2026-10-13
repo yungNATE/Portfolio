@@ -65,6 +65,15 @@ onBeforeUnmount(() => {
       />
     </section>
 
+    <section id="parcours" data-color="#0b6e4f">
+      <ReliefBackground />
+      <Parcours />
+      <PointerGradientSection
+        background-color="#c9a8ff"
+        gradient-color="#0b6e4f"
+      />
+    </section>
+
     <section id="work" data-color="#ff0073">
       <ReliefBackground />
       <Projects />
