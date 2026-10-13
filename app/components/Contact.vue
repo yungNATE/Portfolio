@@ -314,7 +314,7 @@ async function onSubmit() {
 
 .contactLayout {
   display: flex;
-  // flex-wrap: wrap;
+  margin-block: auto;
   gap: 2rem;
   justify-content: center;
   margin-inline: 10vw;
