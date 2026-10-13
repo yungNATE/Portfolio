@@ -120,16 +120,26 @@
         </div>
       </div>
 
-      <button
-        ref="closeEl"
-        type="button"
-        class="project-modal__close"
-        aria-label="Fermer"
-        autofocus
-        @click="close"
-      >
-        <span aria-hidden="true">×</span>
-      </button>
+      <!-- Hors de la zone qui défile : toujours visibles, en haut à droite. -->
+      <div ref="actionsEl" class="project-modal__actions">
+        <NuxtLink
+          v-if="project.path"
+          :to="project.path"
+          class="project-modal__case-study"
+        >
+          Lire l'étude de cas <span aria-hidden="true">→</span>
+        </NuxtLink>
+
+        <button
+          type="button"
+          class="project-modal__close"
+          aria-label="Fermer"
+          autofocus
+          @click="close"
+        >
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
     </div>
   </dialog>
 </template>
@@ -185,7 +195,7 @@ const mediaEl = ref<HTMLElement | null>(null);
 const overlayEl = ref<HTMLElement | null>(null);
 const bodyEl = ref<HTMLElement | null>(null);
 const innerEl = ref<HTMLElement | null>(null);
-const closeEl = ref<HTMLElement | null>(null);
+const actionsEl = ref<HTMLElement | null>(null);
 
 const coverSrc = computed(() =>
   props.project ? projectCoverSrc(props.project) : "",
@@ -355,7 +365,7 @@ function open() {
     // Le titre de la bulle s'efface vite, avant de croiser le vrai titre.
     .fromTo(overlayEl.value, { opacity: 1 }, { opacity: 0, duration: 0.15 }, 0)
     .fromTo(
-      closeEl.value,
+      actionsEl.value,
       { opacity: 0, scale: 0.6 },
       { opacity: 1, scale: 1, duration: 0.3, clearProps: "opacity,transform" },
       0.4,
@@ -376,7 +386,7 @@ function close() {
 
   timeline?.kill();
   timeline = gsap.timeline({ onComplete: finish });
-  timeline.to(closeEl.value, { opacity: 0, duration: 0.15 }, 0);
+  timeline.to(actionsEl.value, { opacity: 0, duration: 0.15 }, 0);
   timeline.to(backdropEl.value, { opacity: 0, duration: 0.3 }, 0.15);
 
   if (!to || prefersReducedMotion()) {
@@ -433,7 +443,7 @@ function teardown() {
       overlayEl.value,
       bodyEl.value,
       innerEl.value,
-      closeEl.value,
+      actionsEl.value,
     ],
     { clearProps: "all" },
   );
@@ -647,6 +657,37 @@ onBeforeUnmount(() => {
   }
 }
 
+.project-modal__case-study {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 1.1rem;
+  border-radius: 999px;
+  background: #fff8f2;
+  color: rgb(20, 20, 18);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+
+  &:visited {
+    color: rgb(20, 20, 18);
+  }
+
+  span {
+    display: inline-block;
+    transition: transform 200ms ease;
+  }
+
+  &:hover span {
+    transform: translateX(3px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.7);
+    outline-offset: 3px;
+  }
+}
+
 .project-modal__status {
   opacity: 0.75;
 }
@@ -715,13 +756,22 @@ onBeforeUnmount(() => {
   }
 }
 
-// ── Fermer ──────────────────────────────────────────────────────────
+// ── Actions (étude de cas + fermer) ─────────────────────────────────
 
-.project-modal__close {
+.project-modal__actions {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  // L'apparition (scale) part du coin, côté bouton fermer.
+  transform-origin: 100% 50%;
+}
+
+.project-modal__close {
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
   width: 44px;

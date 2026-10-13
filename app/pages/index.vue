@@ -35,6 +35,15 @@ onMounted(() => {
       },
     });
   }
+
+  // Retour depuis une étude de cas (/#work) : le wrapper défile seul, le
+  // scroll natif vers l'ancre ne l'atteint pas.
+  const hash = window.location.hash;
+  if (hash) {
+    scrollWrapper.value
+      ?.querySelector<HTMLElement>(hash)
+      ?.scrollIntoView({ block: "start", inline: "start" });
+  }
 });
 
 onBeforeUnmount(() => {
