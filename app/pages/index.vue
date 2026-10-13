@@ -56,40 +56,48 @@ onBeforeUnmount(() => {
   <MagneticCursor />
 
   <div ref="scrollWrapper" class="horizontal-scroll-wrapper">
-    <section id="intro" data-color="#474aff">
+    <section id="intro" data-color="#474aff" data-label="Accueil">
       <ReliefBackground />
       <Intro />
       <PointerGradientSection
         background-color="#ff9f0a"
         gradient-color="#474aff"
-      />
+      >
+        <ScrollIndicator />
+      </PointerGradientSection>
     </section>
 
-    <section id="parcours" data-color="#0b6e4f">
+    <section id="parcours" data-color="#0b6e4f" data-label="Parcours">
       <ReliefBackground />
       <Parcours />
       <PointerGradientSection
         background-color="#c9a8ff"
         gradient-color="#0b6e4f"
-      />
+      >
+        <ScrollIndicator />
+      </PointerGradientSection>
     </section>
 
-    <section id="work" data-color="#ff0073">
+    <section id="work" data-color="#ff0073" data-label="Projets">
       <ReliefBackground />
       <Projects />
       <PointerGradientSection
         background-color="#61FFB8"
         gradient-color="#ff0073"
-      />
+      >
+        <ScrollIndicator />
+      </PointerGradientSection>
     </section>
 
-    <section id="contact" data-color="#f2e8e5">
+    <section id="contact" data-color="#f2e8e5" data-label="Contact">
       <ReliefBackground />
       <Contact />
       <PointerGradientSection
         background-color="#28738A"
         gradient-color="#f2e8e5"
-      />
+      >
+        <ScrollIndicator />
+      </PointerGradientSection>
     </section>
   </div>
 </template>
@@ -145,5 +153,10 @@ onBeforeUnmount(() => {
 /* Portrait / small-aspect handling: disable horizontal mapping and stack items */
 .horizontal-scroll-wrapper.is-portrait {
   display: block;
+
+  // Bande à effet de survol : sans pointeur sur mobile, elle ne sert à rien
+  .pointer-gradient-section {
+    display: none;
+  }
 }
 </style>

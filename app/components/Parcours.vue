@@ -147,6 +147,8 @@ const axes: Axe[] = [
 
 .parcours__lead {
   margin: 0;
+  font-family: var(--font-text);
+  font-size: 1.05rem;
   line-height: 1.6;
   opacity: 0.9;
 }
@@ -243,7 +245,8 @@ const axes: Axe[] = [
 
 .parcours__text {
   margin: 0;
-  font-size: 0.92rem;
+  font-family: var(--font-text);
+  font-size: 0.95rem;
   line-height: 1.55;
   opacity: 0.9;
 }

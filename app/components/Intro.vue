@@ -5,11 +5,13 @@ import type { PlayASCIIFramesInstance } from "../utils/PlayASCIIFrames_fixed";
 import { frames } from "../assets/js/ASCIISelfieFrames2.js";
 import { useScreenInfo } from "../utils/screen";
 
+// Mots-clés métier d'abord (ce qu'un recruteur cherche), puis les plus
+// personnels.
 const roles = [
-  "Informaticien",
   "Développeur Frontend",
+  "UX/UI Designer",
+  "Informaticien",
   "& créatif",
-  "UX Designer",
   "Motion Enthusiast",
   "Light Enthusiast",
 ];
@@ -231,6 +233,11 @@ onBeforeUnmount(() => {
 
     li {
       position: relative;
+    }
+
+    // La flèche (::after) reste sur la ligne du lien
+    a {
+      white-space: nowrap;
     }
   }
 }

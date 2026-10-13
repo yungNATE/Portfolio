@@ -4,10 +4,19 @@ body,
   height: 100%;
 }
 
-#__nuxt {
-  font-family: "Google Sans Code", monospace;
+// Sur body et pas #__nuxt : les éléments téléportés (infobulle, modale)
+// héritent aussi de la police.
+body {
+  font-family: var(--font-mono);
 }
+
 :root {
+  // Mono pour les titres, étiquettes et données ; sa version proportionnelle
+  // pour le texte courant, plus lisible en longueur.
+  --font-mono: "Google Sans Code", monospace;
+  --font-text: "Google Sans Flex", system-ui, sans-serif;
+  // Hauteur de la bande colorée en bas de chaque section
+  --band-height: 48px;
   --background-color: #474aff;
   // Fond sombre des pages sans sections colorées (étude de cas), aussi
   // utilisé par la transition de page quand aucune couleur de section n'existe.
@@ -43,12 +52,11 @@ h3,
 }
 a,
 .a {
+  // Même couleur avant et après visite : le bleu par défaut des liens non
+  // visités disparaissait sur les fonds de section.
+  color: inherit;
   text-decoration: none;
   font-weight: 600;
-
-  &:visited {
-    color: inherit;
-  }
 
   &::after {
     margin-left: 0.35em;

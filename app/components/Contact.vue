@@ -37,45 +37,60 @@
 
             <div class="grid">
               <label class="field">
-                <input
-                  type="text"
-                  name="name"
-                  v-model="form.name"
-                  required
-                  autocomplete="name"
-                  :aria-invalid="!!errors.name"
-                  :class="{ active: form.name, 'has-error': errors.name }"
-                />
-                <span class="floating">Nom</span>
+                <span class="control">
+                  <input
+                    type="text"
+                    name="name"
+                    v-model="form.name"
+                    required
+                    autocomplete="name"
+                    :aria-invalid="!!errors.name"
+                    :class="{ active: form.name, 'has-error': errors.name }"
+                  />
+                  <span class="floating">Nom</span>
+                  <fieldset class="outline" aria-hidden="true">
+                    <legend><span>Nom</span></legend>
+                  </fieldset>
+                </span>
                 <span class="error" v-if="errors.name">{{ errors.name }}</span>
               </label>
 
               <label class="field">
-                <input
-                  type="email"
-                  name="email"
-                  v-model="form.email"
-                  required
-                  autocomplete="email"
-                  :aria-invalid="!!errors.email"
-                  :class="{ active: form.email, 'has-error': errors.email }"
-                />
-                <span class="floating">Email</span>
+                <span class="control">
+                  <input
+                    type="email"
+                    name="email"
+                    v-model="form.email"
+                    required
+                    autocomplete="email"
+                    :aria-invalid="!!errors.email"
+                    :class="{ active: form.email, 'has-error': errors.email }"
+                  />
+                  <span class="floating">Email</span>
+                  <fieldset class="outline" aria-hidden="true">
+                    <legend><span>Email</span></legend>
+                  </fieldset>
+                </span>
                 <span class="error" v-if="errors.email">{{
                   errors.email
                 }}</span>
               </label>
 
               <label class="field full textarea">
-                <textarea
-                  name="message"
-                  v-model="form.message"
-                  rows="6"
-                  required
-                  :aria-invalid="!!errors.message"
-                  :class="{ active: form.message, 'has-error': errors.message }"
-                ></textarea>
-                <span class="floating">Message</span>
+                <span class="control">
+                  <textarea
+                    name="message"
+                    v-model="form.message"
+                    rows="6"
+                    required
+                    :aria-invalid="!!errors.message"
+                    :class="{ active: form.message, 'has-error': errors.message }"
+                  ></textarea>
+                  <span class="floating">Message</span>
+                  <fieldset class="outline" aria-hidden="true">
+                    <legend><span>Message</span></legend>
+                  </fieldset>
+                </span>
                 <span class="error" v-if="errors.message">{{
                   errors.message
                 }}</span>
@@ -338,6 +353,13 @@ async function onSubmit() {
   padding-inline: 5px;
 }
 
+.header p {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -357,15 +379,26 @@ async function onSubmit() {
     grid-column: 1 / -1;
   }
 
+  // Champ + étiquette + contour : référence de positionnement de l'étiquette,
+  // sans le message d'erreur placé dessous.
+  .control {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
   input[type="text"],
   input[type="email"],
   input[type="url"],
   textarea {
     appearance: none;
     padding: 0.9rem 0.75rem;
-    border: 1px solid rgba(60, 70, 90, 0.1);
+    // La bordure est dessinée par .outline
+    border: none;
+    outline: none;
     background: rgba(255, 255, 255, 0.02);
     color: inherit;
+    font-family: var(--font-text);
     transition:
       box-shadow 0.18s,
       border-color 0.18s,
@@ -386,8 +419,8 @@ async function onSubmit() {
     transform: translateY(100%);
     pointer-events: none;
     color: #9aa4b2;
-    background: var(--section-color);
     padding-inline: 4px;
+    z-index: 1;
     height: fit-content;
     font-size: 0.88rem;
     transform-origin: left top;
@@ -400,12 +433,47 @@ async function onSubmit() {
       color $duration $type;
   }
 
-  /* underline focus */
+  /* Contour à encoche : la legend (invisible, au texte de l'étiquette)
+     interrompt nativement la bordure du fieldset sous l'étiquette remontée,
+     sans fond à faire correspondre avec celui de la section. */
+  .outline {
+    position: absolute;
+    inset: -6px 0 0;
+    margin: 0;
+    padding: 0 0 0 14px;
+    border: 1px solid rgba(60, 70, 90, 0.25);
+    pointer-events: none;
+    min-width: 0;
+    transition: border-color 0.18s;
+
+    legend {
+      height: 12px;
+      padding: 0;
+      font-size: 0.88rem;
+      white-space: nowrap;
+      overflow: hidden;
+      visibility: hidden;
+      max-width: 0.01px; // fermée : pas d'encoche
+      transition: max-width 0.05s;
+
+      span {
+        padding-inline: 4px;
+      }
+    }
+  }
+
   input,
   textarea {
     &:focus {
       box-shadow: 0 6px 18px rgba(80, 110, 255, 0.06);
-      border-color: rgba(100, 140, 255, 0.9);
+
+      & ~ .outline {
+        border-color: rgba(100, 140, 255, 0.9);
+      }
+    }
+
+    &.has-error ~ .outline {
+      border-color: #ff6b6b;
     }
 
     &:focus,
@@ -418,6 +486,11 @@ async function onSubmit() {
 
       &.has-error + .floating {
         color: #ff6b6b;
+      }
+
+      & ~ .outline legend {
+        max-width: 100%;
+        transition: max-width 0.1s 0.05s;
       }
     }
   }
@@ -445,6 +518,24 @@ async function onSubmit() {
   justify-content: center;
   align-items: center;
   padding-inline: 70px;
+}
+
+// Mobile : formulaire et main empilés, sans les marges latérales du desktop
+// qui écrasaient le formulaire à quelques pixels de large.
+@media (max-width: 720px) {
+  .contactLayout {
+    flex-direction: column;
+    margin-inline: 0;
+    padding: 0;
+  }
+
+  .formWrapper {
+    flex-basis: auto;
+  }
+
+  .handWrapper {
+    padding-inline: 0;
+  }
 }
 
 .contactForm--hidden {

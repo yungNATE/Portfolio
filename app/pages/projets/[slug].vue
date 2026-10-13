@@ -118,9 +118,11 @@ const hasDefisSolutions = computed(
   () => !!(p.value.defis?.length || p.value.solutions?.length),
 );
 
+// Un corps d'un seul paragraphe n'est qu'une phrase de présentation qui
+// redit le résumé : on ne l'affiche que s'il apporte un vrai contenu.
 const hasBody = computed(() => {
   const body = p.value.body as { value?: unknown[] } | undefined;
-  return !!body?.value?.length;
+  return (body?.value?.length ?? 0) > 1;
 });
 
 const accent = computed(() => p.value.couleurAccent ?? "#ff0073");
@@ -390,7 +392,14 @@ const accent = computed(() => p.value.couleurAccent ?? "#ff0073");
 
   min-height: 100%;
   padding: clamp(1rem, 4vw, 3rem);
-  background: var(--surface);
+  // Halo de la couleur du projet en haut de page, rappel de la section Projets
+  background:
+    radial-gradient(
+      ellipse 80% 520px at 50% 0,
+      color-mix(in srgb, var(--accent) 22%, transparent),
+      transparent
+    ),
+    var(--surface);
   color: var(--text);
 
   a {
@@ -450,9 +459,26 @@ const accent = computed(() => p.value.couleurAccent ?? "#ff0073");
   opacity: 0.8;
 }
 
+// Texte courant : police proportionnelle (la mono reste aux titres,
+// étiquettes et données comme les faits ou la stack)
+.case-study__subtitle,
+.case-study__block p,
+.case-study__block li,
+.case-study__aside p {
+  font-family: var(--font-text);
+}
+
+// À taille égale, la police proportionnelle paraît plus petite que la mono
+.case-study__block p,
+.case-study__block li {
+  font-size: 1.05rem;
+}
+
+// Chaque fait prend la largeur de son contenu : une valeur longue (client)
+// ne s'écrase plus dans une colonne fixe.
 .case-study__facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem 2rem;
   margin: 1rem 0 0;
   padding-top: 1.5rem;
@@ -467,6 +493,7 @@ const accent = computed(() => p.value.couleurAccent ?? "#ff0073");
   }
 
   dd {
+    max-width: 32ch;
     margin: 0;
     line-height: 1.4;
   }
@@ -729,7 +756,7 @@ const accent = computed(() => p.value.couleurAccent ?? "#ff0073");
   li {
     padding: 0.32rem 0.65rem;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--accent) 18%, rgba(255, 255, 255, 0.08));
     font-size: 0.85rem;
   }
 }

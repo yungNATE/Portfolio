@@ -19,23 +19,23 @@
         <button
           type="button"
           class="projects-grid__filter"
-          :class="{ 'is-active': activeTags.length === 0 }"
-          :aria-pressed="activeTags.length === 0"
+          :class="{ 'is-active': activeFilters.length === 0 }"
+          :aria-pressed="activeFilters.length === 0"
           @click="clearFilters"
         >
           Tous
         </button>
 
         <button
-          v-for="tag in tagOptions"
-          :key="tag"
+          v-for="filter in filterOptions"
+          :key="filter.label"
           type="button"
           class="projects-grid__filter"
-          :class="{ 'is-active': isTagActive(tag) }"
-          :aria-pressed="isTagActive(tag)"
-          @click="toggleTag(tag)"
+          :class="{ 'is-active': isFilterActive(filter.label) }"
+          :aria-pressed="isFilterActive(filter.label)"
+          @click="toggleFilter(filter.label)"
         >
-          {{ tag }}
+          {{ filter.label }}
         </button>
       </div>
     </div>
@@ -139,7 +139,8 @@ const { data: fetchedProjects } = await useAsyncData("projects-grid", () =>
     .all(),
 );
 
-const activeTags = ref<string[]>([]);
+// Libellés des filtres (FILTERS) sélectionnés
+const activeFilters = ref<string[]>([]);
 
 // Projet ouvert via un ProjectDot, affiché par ProjectModal qui s'anime
 // depuis la bulle d'origine.
@@ -315,33 +316,53 @@ const projects = computed<DecoratedProject[]>(() => {
   return sortProjects(items as ProjectItem[]) as DecoratedProject[];
 });
 
-const tagOptions = computed(() => {
-  const tags = new Map<string, string>();
+// Filtres affichés : une poignée de familles plutôt que tous les tags des
+// projets. Chaque filtre regroupe les tags qui en relèvent (comparés
+// normalisés) ; un projet correspond s'il porte l'un d'eux.
+const FILTERS: { label: string; tags: string[] }[] = [
+  { label: "UX/UI", tags: ["UX/UI", "UX Design", "Figma"] },
+  {
+    label: "UX Research",
+    tags: ["UX Research", "Recherche expérimentale", "Audit UX"],
+  },
+  {
+    label: "Développement front",
+    tags: ["Nuxt", "Vue", "Vanilla JS", "SCSS", "AngularJS", "Design System"],
+  },
+  { label: "WordPress", tags: ["WordPress"] },
+  {
+    label: "Creative Coding",
+    tags: ["Creative Coding", "Three.js", "WebGL", "GSAP"],
+  },
+  { label: "Serious Game", tags: ["Serious Game", "Jeu sérieux"] },
+  { label: "Accessibilité", tags: ["RGAA"] },
+  {
+    label: "Design graphique",
+    tags: ["Design graphique", "Print", "Branding", "Refonte graphique"],
+  },
+];
 
-  projects.value.forEach((project) => {
-    project.tags.forEach((tag) => {
-      const normalized = normalizeTag(tag);
+function matchesFilter(project: ProjectItem, label: string) {
+  const filter = FILTERS.find((item) => item.label === label);
+  if (!filter) return false;
+  const filterTags = new Set(filter.tags.map(normalizeTag));
+  return project.tags.some((tag) => filterTags.has(normalizeTag(tag)));
+}
 
-      if (!tags.has(normalized)) {
-        tags.set(normalized, tag);
-      }
-    });
-  });
-
-  return Array.from(tags.values());
-});
-
-const activeTagSet = computed(
-  () => new Set(activeTags.value.map((tag) => normalizeTag(tag))),
+// Un filtre sans projet visible n'est pas proposé.
+const filterOptions = computed(() =>
+  FILTERS.filter((filter) =>
+    projects.value.some((project) => matchesFilter(project, filter.label)),
+  ),
 );
 
 const filteredProjects = computed(() => {
-  if (activeTagSet.value.size === 0) {
+  if (activeFilters.value.length === 0) {
     return projects.value;
   }
 
   return projects.value.filter((project) =>
-    project.tags.some((tag) => activeTagSet.value.has(normalizeTag(tag))),
+    activeFilters.value.some((label) => matchesFilter(project, label)),
   );
 });
 
@@ -355,25 +376,18 @@ const resultsLabel = computed(() => {
   return `${count} projet${count > 1 ? "s" : ""}`;
 });
 
-function isTagActive(tag: string) {
-  return activeTagSet.value.has(normalizeTag(tag));
+function isFilterActive(label: string) {
+  return activeFilters.value.includes(label);
 }
 
-function toggleTag(tag: string) {
-  const normalized = normalizeTag(tag);
-
-  if (activeTagSet.value.has(normalized)) {
-    activeTags.value = activeTags.value.filter(
-      (currentTag) => normalizeTag(currentTag) !== normalized,
-    );
-    return;
-  }
-
-  activeTags.value = [...activeTags.value, tag];
+function toggleFilter(label: string) {
+  activeFilters.value = isFilterActive(label)
+    ? activeFilters.value.filter((current) => current !== label)
+    : [...activeFilters.value, label];
 }
 
 function clearFilters() {
-  activeTags.value = [];
+  activeFilters.value = [];
 }
 
 function importanceLabel(project: ProjectItem) {
@@ -503,7 +517,8 @@ function importanceLabel(project: ProjectItem) {
   border: 1px solid rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
   color: #fff8f2;
-  font-size: 0.88rem;
+  font-family: var(--font-text);
+  font-size: 0.9rem;
   line-height: 1.5;
   pointer-events: none;
 }

@@ -628,6 +628,13 @@ onBeforeUnmount(() => {
   opacity: 0.75;
 }
 
+// Texte courant : police proportionnelle
+.project-modal__subtitle,
+.project-modal__resume,
+.project-modal__body section > p {
+  font-family: var(--font-text);
+}
+
 .project-modal__eyebrow {
   margin: 0 0 0.5rem;
   text-transform: uppercase;

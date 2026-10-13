@@ -58,7 +58,7 @@ const props = withDefaults(defineProps<Props>(), {
   backgroundColor: "#0d0d0d",
   gradientColor: "#6c5ce7",
   width: "100%",
-  height: "100px",
+  height: "var(--band-height)",
   gradientSize: "600px",
   fadeStop: "70%",
   opacity: 0.65,
@@ -127,7 +127,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .pointer-gradient-section {
   position: relative;
-  overflow: hidden;
+  /* clip et pas hidden : coupe pareil sans créer de conteneur de scroll, ce
+     qui laisse fonctionner un contenu en position: sticky (ScrollIndicator) */
+  overflow: clip;
   --x: 50%;
   --y: 50%;
 }
