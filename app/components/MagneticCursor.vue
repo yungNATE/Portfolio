@@ -3,6 +3,7 @@
     ref="container"
     class="magnetic-cursor"
     :class="{ 'is-visible': isVisible }"
+    popover="manual"
     :style="{
       '--cursor-color': color,
       '--cursor-blend': mixBlend ? 'difference' : 'normal',
@@ -77,6 +78,7 @@ let material;
 let animationFrame = 0;
 let resizeObserver;
 let mutationObserver;
+let dialogObserver;
 
 // true seulement si le setup a réellement été effectué
 // (souris fine + hover dispo + pas de reduced-motion).
@@ -228,6 +230,17 @@ const INTERACTIVE_SELECTOR = [
 ].join(",");
 
 /**
+ * Couche avec laquelle l'utilisateur peut interagir : le dialog modal
+ * ouvert (le reste de la page est alors inerte), sinon tout le document.
+ * S'il y en a plusieurs, on prend la dernière dans l'ordre du DOM.
+ */
+function getCurrentLayer() {
+  const modals = document.querySelectorAll("dialog:modal");
+
+  return modals[modals.length - 1] ?? document;
+}
+
+/**
  * Rebuild de la liste des éléments interactifs.
  *
  * On ne fait PAS querySelectorAll() à chaque frame.
@@ -236,9 +249,14 @@ const INTERACTIVE_SELECTOR = [
 function refreshInteractiveElements() {
   interactiveElements.length = 0;
 
-  const elements = document.querySelectorAll(INTERACTIVE_SELECTOR);
+  const elements = getCurrentLayer().querySelectorAll(INTERACTIVE_SELECTOR);
 
   for (const element of elements) {
+    // Contenu rendu inerte (attribut inert) : hors de la couche active.
+    if (element.closest("[inert]")) {
+      continue;
+    }
+
     const rect = element.getBoundingClientRect();
 
     interactiveElements.push({
@@ -904,6 +922,20 @@ function animate() {
  * ---------------------------------------------------------
  */
 
+// (Re)place le curseur en haut du top layer. Sans support des popovers,
+// on retombe sur le z-index (insuffisant face à un dialog modal).
+function bringToTopLayer() {
+  const el = container.value;
+  if (!el?.showPopover) {
+    return;
+  }
+
+  if (el.matches(":popover-open")) {
+    el.hidePopover();
+  }
+  el.showPopover();
+}
+
 function supportsCustomCursor() {
   return (
     window.matchMedia("(hover: hover) and (pointer: fine)").matches &&
@@ -973,6 +1005,26 @@ onMounted(async () => {
 
   resizeObserver.observe(document.body);
 
+  /**
+   * Un <dialog> en showModal() passe dans le top layer, au-dessus de
+   * tout z-index. Le curseur y est donc aussi (popover), et doit être
+   * ré-empilé à chaque ouverture de dialog : dans le top layer, c'est
+   * le dernier entré qui est au-dessus.
+   * Le magnétisme suit aussi la couche active (voir getCurrentLayer).
+   */
+  bringToTopLayer();
+
+  dialogObserver = new MutationObserver(() => {
+    bringToTopLayer();
+    refreshInteractiveElements();
+  });
+
+  dialogObserver.observe(document.body, {
+    attributes: true,
+    attributeFilter: ["open", "inert"],
+    subtree: true,
+  });
+
   document.documentElement.classList.add("has-custom-cursor");
 
   animationFrame = requestAnimationFrame(animate);
@@ -997,6 +1049,7 @@ onBeforeUnmount(() => {
 
   resizeObserver?.disconnect();
   mutationObserver?.disconnect();
+  dialogObserver?.disconnect();
 
   geometry?.dispose();
   material?.dispose();
@@ -1027,6 +1080,14 @@ watch(
   inset: 0;
 
   z-index: 999999;
+
+  /* Annule les styles UA de [popover]. */
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
 
   pointer-events: none;
 
