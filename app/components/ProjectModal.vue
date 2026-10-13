@@ -151,12 +151,14 @@ import {
   computed,
   nextTick,
   onBeforeUnmount,
+  onMounted,
   ref,
   shallowRef,
   useId,
   watch,
 } from "vue";
 import type { ProjectItem } from "~/types/project";
+import { MODAL_AUTO_CLOSE_EVENTS } from "~/utils/modalEvents";
 import { PROJECT_DOT_IMAGE, projectCoverSrc } from "~/utils/projectCover";
 
 /**
@@ -459,7 +461,18 @@ function teardown() {
   emit("close");
 }
 
+// Fermeture automatique sur les événements globaux (demande de fermeture,
+// début d'une transition de page). close() ignore l'appel si rien n'est ouvert.
+onMounted(() => {
+  for (const name of MODAL_AUTO_CLOSE_EVENTS) {
+    window.addEventListener(name, close);
+  }
+});
+
 onBeforeUnmount(() => {
+  for (const name of MODAL_AUTO_CLOSE_EVENTS) {
+    window.removeEventListener(name, close);
+  }
   if (!active) return;
   teardown();
   dialogEl.value?.close();

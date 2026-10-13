@@ -384,7 +384,7 @@ const accent = computed(() => p.value.couleurAccent ?? "#ff0073");
 
 <style lang="scss" scoped>
 .case-study {
-  --surface: rgb(20, 20, 18);
+  --surface: var(--color-dark);
   --text: #fff8f2;
   --line: rgba(255, 255, 255, 0.15);
 
