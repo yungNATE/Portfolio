@@ -116,7 +116,6 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, shallowRef, watch } from "vue";
-import MurkyThumbnail from "./MurkyThumbnail.vue";
 import type { ProjectItem } from "~/types/project";
 
 type DecoratedProject = ProjectItem & { __index: number };
