@@ -16,6 +16,11 @@ const roles = [
   "Light Enthusiast",
 ];
 
+// Même critère que la section Projets : projets visibles uniquement.
+const { data: projectCount } = await useAsyncData("intro-project-count", () =>
+  queryCollection("projets").where("visible", "=", true).count(),
+);
+
 const asciiArt = ref<HTMLElement | null>(null);
 const { screenMode } = useScreenInfo();
 const activeIndex = ref(0);
@@ -109,55 +114,76 @@ onBeforeUnmount(() => {
       </ul>
     </div>
 
-    <SkillGraph />
+    <!-- Bas de la colonne gauche : accroche, repères et liens d'action -->
+    <div class="intro-aside">
+      <nav class="main-menu">
+        <ul>
+          <li class="CV">
+            <a href="/Frontend_CV_MartinigolNathan.pdf" class="external">CV</a>
+          </li>
+          <li class="contact">
+            <a
+              href="https://www.linkedin.com/in/martinigol/"
+              class="external"
+              target="_blank"
+              >Linkedin</a
+            >
+          </li>
+          <li class="contact">
+            <a href="#contact" class="anchor">Discutons</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
 
-    <nav class="main-menu">
-      <ul>
-        <li class="CV">
-          <a href="/Frontend_CV_MartinigolNathan.pdf" class="external">CV</a>
-        </li>
-        <li class="contact">
-          <a
-            href="https://www.linkedin.com/in/martinigol/"
-            class="external"
-            target="_blank"
-            >Linkedin</a
-          >
-        </li>
-        <li class="contact">
-          <a href="#contact" class="anchor">Discutons</a>
-        </li>
-      </ul>
-    </nav>
+    <SkillGraph />
   </div>
 </template>
 
 <style lang="scss">
+// Paysage : colonne gauche (titre en haut, accroche + liens en bas),
+// graphe de compétences sur toute la hauteur à droite.
 .introWrapper {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-  // min-height: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: clamp(2rem, 5vw, 4rem);
   overflow: hidden;
-  gap: 50px;
+
+  .titles {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .intro-aside {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: end;
+  }
+
+  .skill-graph-wrapper {
+    grid-column: 2;
+    grid-row: 1 / -1;
+  }
 
   &.is-portrait {
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
     gap: 50px 20px;
 
     .titles,
-    .main-menu {
+    .intro-aside {
       width: 100%;
       z-index: 1;
     }
-  }
 
-  &.is-portrait .name-break {
-    display: block;
+    .skill-graph-wrapper {
+      height: auto;
+      aspect-ratio: 6 / 5;
+    }
   }
 
   .titles {
@@ -167,10 +193,6 @@ onBeforeUnmount(() => {
     flex-direction: column;
     gap: 0.5em;
     color: white;
-
-    .name-break {
-      display: none;
-    }
   }
 
   // Roller: 3 visible lines (previous / active / next), roles slide upward
@@ -180,6 +202,10 @@ onBeforeUnmount(() => {
 
     position: relative;
     height: calc(var(--line) * 3);
+    // Les rôles qui sortent du rouleau (fondu en cours) passaient par-dessus
+    // le nom ; clip et pas hidden pour laisser déborder en largeur.
+    overflow-x: visible;
+    overflow-y: clip;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -218,16 +244,23 @@ onBeforeUnmount(() => {
     }
   }
 
+  .intro-aside {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 1.75rem;
+    max-width: 32rem;
+  }
+
   .main-menu {
     position: relative;
-    align-self: start;
-    z-index: 1;
 
     > ul {
       display: flex;
-      gap: 30px;
+      flex-wrap: wrap;
+      gap: 0.75rem 30px;
       list-style: none;
-      justify-content: center;
+      margin: 0;
       padding: 0;
     }
 

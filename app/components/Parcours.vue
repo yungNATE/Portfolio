@@ -13,7 +13,13 @@
     </div>
 
     <ol class="parcours__timeline" aria-label="Étapes de mon parcours">
-      <li v-for="step in steps" :key="step.titre" class="parcours__step">
+      <li
+        v-for="(step, index) in steps"
+        :key="step.titre"
+        class="parcours__step"
+        :class="{ 'is-below': index % 2 === 1 }"
+        :style="{ '--col': index + 1 }"
+      >
         <p class="parcours__period">{{ step.periode }}</p>
         <h3 class="parcours__step-title">{{ step.titre }}</h3>
         <p class="parcours__place">{{ step.lieu }}</p>
@@ -21,7 +27,11 @@
       </li>
 
       <!-- Étape ouverte : la suite du parcours, pas encore écrite -->
-      <li class="parcours__step parcours__step--next">
+      <li
+        class="parcours__step parcours__step--next"
+        :class="{ 'is-below': steps.length % 2 === 1 }"
+        :style="{ '--col': steps.length + 1 }"
+      >
         <p class="parcours__period">Disponible</p>
         <h3 class="parcours__step-title">La prochaine aventure ?</h3>
         <p class="parcours__place">Freelance ou CDI</p>
@@ -130,19 +140,36 @@ const axes: Axe[] = [
 </script>
 
 <style lang="scss" scoped>
+// Paysage : intro et « Ce que j'apporte » empilés à gauche, frise en zigzag
+// sur toute la hauteur à droite.
 .parcours {
-  display: flex;
-  align-items: flex-start;
-  gap: clamp(2rem, 5vw, 4rem);
+  --intro-width: clamp(420px, 38vw, 600px);
+  --line-color: rgba(255, 255, 255, 0.4);
+
+  display: grid;
+  grid-template-columns: var(--intro-width) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: clamp(2rem, 5vw, 4rem);
+  row-gap: 2rem;
   width: max-content;
+  height: 100%;
   color: #fff8f2;
 }
 
 .parcours__intro {
-  flex: 0 0 auto;
-  max-width: 420px;
+  grid-column: 1;
+  grid-row: 1;
   display: grid;
   gap: 1.5rem;
+}
+
+.parcours__axes {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
 }
 
 .parcours__lead {
@@ -153,42 +180,73 @@ const axes: Axe[] = [
   opacity: 0.9;
 }
 
-// Frise : une colonne par étape, reliées par un trait continu
+// Frise : trait horizontal à mi-hauteur, étapes alternées au-dessus et en
+// dessous. Chaque étape couvre deux demi-colonnes et la suivante démarre une
+// demi-colonne plus loin, d'où le décalage.
 .parcours__timeline {
-  flex: 0 0 auto;
+  --half: 125px;
+
+  position: relative;
+  grid-column: 2;
+  grid-row: 1 / -1;
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 260px;
-  gap: 1.5rem;
+  grid-auto-columns: var(--half);
+  grid-template-rows: 1fr 1fr;
+  column-gap: 1.5rem;
   margin: 0;
   padding: 0;
   list-style: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--line-color);
+  }
 }
 
 .parcours__step {
   position: relative;
+  grid-column: var(--col) / span 2;
+  grid-row: 1;
+  align-self: end;
   display: grid;
   align-content: start;
   gap: 0.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  // Tige qui relie l'étape au trait
+  padding: 0 0 2rem 1rem;
+  border-left: 1px solid var(--line-color);
 
-  // Jalon sur le trait
+  // Jalon sur le trait, au pied de la tige
   &::before {
     content: "";
     position: absolute;
-    top: -6px;
-    left: 0;
+    bottom: -6px;
+    left: -6px;
     width: 11px;
     aspect-ratio: 1;
     border-radius: 50%;
     background: #fff8f2;
   }
+
+  &.is-below {
+    grid-row: 2;
+    align-self: start;
+    padding: 2rem 0 0 1rem;
+
+    &::before {
+      top: -6px;
+      bottom: auto;
+    }
+  }
 }
 
-// Étape à venir : trait pointillé et jalon vide qui pulse
+// Étape à venir : tige pointillée et jalon vide qui pulse
 .parcours__step--next {
-  border-top-style: dashed;
+  border-left-style: dashed;
 
   &::before {
     background: transparent;
@@ -251,14 +309,6 @@ const axes: Axe[] = [
   opacity: 0.9;
 }
 
-.parcours__axes {
-  flex: 0 0 auto;
-  width: min(80vw, 640px);
-  display: grid;
-  gap: 1.5rem;
-  justify-items: start;
-}
-
 .parcours__axes-title {
   font-size: 1.5rem;
 }
@@ -266,7 +316,7 @@ const axes: Axe[] = [
 .parcours__axes-list {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  gap: 0.75rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -275,8 +325,8 @@ const axes: Axe[] = [
 .parcours__axe {
   display: grid;
   align-content: start;
-  gap: 0.6rem;
-  padding: 1.2rem;
+  gap: 0.5rem;
+  padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.06);
@@ -287,37 +337,57 @@ const axes: Axe[] = [
   font-size: 1.05rem;
 }
 
+// Écran paysage peu haut : la colonne de gauche ne tient plus, « Ce que
+// j'apporte » reprend sa propre colonne entre l'intro et la frise.
+@media (max-height: 780px) {
+  .parcours {
+    grid-template-columns: var(--intro-width) min(80vw, 640px) auto;
+    grid-template-rows: auto;
+  }
+
+  .parcours__axes {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .parcours__timeline {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
 // Même critère que le passage en `.is-portrait` du scroll horizontal
 // (ratio <= 1) : blocs empilés, frise verticale.
 @media (max-aspect-ratio: 1/1) {
   .parcours {
+    display: flex;
     flex-direction: column;
+    gap: clamp(2rem, 5vw, 4rem);
     width: 100%;
-  }
-
-  .parcours__intro {
-    max-width: none;
+    height: auto;
   }
 
   .parcours__timeline {
-    grid-auto-flow: row;
+    grid-template-rows: none;
     grid-auto-columns: auto;
+    row-gap: 1.5rem;
     width: 100%;
+
+    &::before {
+      display: none;
+    }
   }
 
-  .parcours__step {
-    padding-top: 0;
-    padding-left: 1.5rem;
-    border-top: none;
-    border-left: 1px solid rgba(255, 255, 255, 0.4);
-
-    &.parcours__step--next {
-      border-left-style: dashed;
-    }
+  .parcours__step,
+  .parcours__step.is-below {
+    grid-column: auto;
+    grid-row: auto;
+    align-self: auto;
+    padding: 0 0 0 1.5rem;
 
     &::before {
       top: 0;
-      left: -6px;
+      bottom: auto;
     }
   }
 

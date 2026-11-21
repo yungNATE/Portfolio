@@ -440,7 +440,7 @@ function importanceLabel(project: ProjectItem) {
 .projects-grid__filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.7rem;
+  gap: 0.5rem;
 }
 
 .projects-grid__filter {
@@ -449,8 +449,9 @@ function importanceLabel(project: ProjectItem) {
   background: rgba(255, 255, 255, 0.06);
   color: inherit;
   border-radius: 999px;
-  padding: 0.6rem 0.95rem;
+  padding: 0.4rem 0.75rem;
   font: inherit;
+  font-size: 0.875rem;
   cursor: pointer;
   transition:
     background-color 0.25s ease,
@@ -472,9 +473,11 @@ function importanceLabel(project: ProjectItem) {
 
 // Zone Bubble UI : ses dimensions pilotent les options responsive de
 // BubbleUiPan (taille des bulles, rayons), mesurées par ResizeObserver.
+// Étroite à dessein : peu de colonnes, la grille se parcourt verticalement.
+// (Équivaut aux 45 % d'une zone de min(80vw, 1200px), sans la marge vide.)
 .projects-grid__list {
   flex: 0 0 auto;
-  width: min(80vw, 1200px);
+  width: min(36vw, 540px);
   height: 100%;
   min-height: 0;
 }
@@ -492,7 +495,7 @@ function importanceLabel(project: ProjectItem) {
   }
 
   .projects-grid__list {
-    width: 100%;
+    width: 45%;
     height: 70svh;
     min-height: 360px;
   }

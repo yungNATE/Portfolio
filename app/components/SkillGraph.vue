@@ -86,8 +86,16 @@ const svgRef = ref<SVGSVGElement | null>(null);
 const graphGroup = ref<SVGGElement | null>(null);
 const liveRef = ref<HTMLElement | null>(null);
 
-const width = ref(480);
-const height = ref(420);
+// Zone de référence pour laquelle les rayons et libellés du graphe sont
+// dessinés : il est agrandi (ou réduit) pour tenir dans le conteneur.
+const BASE_WIDTH = 520;
+const BASE_HEIGHT = 420;
+const MIN_SCALE = 0.6;
+const MAX_SCALE = 1.5;
+
+const width = ref(BASE_WIDTH);
+const height = ref(BASE_HEIGHT);
+const scale = ref(1);
 const expandedCategory = ref<string | null>(null);
 const currentDepth = ref<number>(1); // niv
 const selectedSkillId = ref<string | null>(null);
@@ -95,7 +103,8 @@ const selectedSkillId = ref<string | null>(null);
 const titleId = "skillChartTitle";
 const descId = "skillChartDesc";
 const centerTransform = computed(
-  () => `translate(${width.value / 2}, ${height.value / 2})`,
+  () =>
+    `translate(${width.value / 2}, ${height.value / 2}) scale(${scale.value})`,
 );
 
 const { data: fetchedTechnos } = await useAsyncData("technos-force-graph", () =>
@@ -134,9 +143,22 @@ function announce(text: string) {
 }
 
 function measure() {
-  const measuredWidth = containerRef.value?.clientWidth || 480;
-  width.value = Math.max(320, measuredWidth);
-  height.value = Math.max(420, Math.round(width.value * 0.78));
+  // Le SVG est en absolu dans le conteneur : sa taille vient uniquement de
+  // la mise en page parente, sans boucle avec le ResizeObserver.
+  const measuredWidth = containerRef.value?.clientWidth || BASE_WIDTH;
+  const measuredHeight =
+    containerRef.value?.clientHeight ||
+    Math.round(measuredWidth * (BASE_HEIGHT / BASE_WIDTH));
+
+  width.value = measuredWidth;
+  height.value = measuredHeight;
+  scale.value = Math.min(
+    MAX_SCALE,
+    Math.max(
+      MIN_SCALE,
+      Math.min(measuredWidth / BASE_WIDTH, measuredHeight / BASE_HEIGHT),
+    ),
+  );
 }
 
 function wrapLabel(label: string, maxCharsPerLine: number) {
@@ -752,18 +774,22 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* Remplit la zone que lui donne le parent (hauteur comprise) */
 .skill-graph-wrapper {
+  position: relative;
   width: 100%;
-  max-width: 520px;
-  margin-top: 20px;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
   color: inherit;
   overflow: visible;
-  padding-inline: 40px;
 }
 
 .skill-graph-svg {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
   display: block;
   overflow: visible;
 }

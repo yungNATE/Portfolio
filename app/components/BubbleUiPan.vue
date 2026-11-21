@@ -409,7 +409,8 @@ onBeforeUnmount(() => {
   --fade-size: clamp(64px, 20%, 180px);
 
   position: relative;
-  width: 45%;
+  // La largeur (et donc le nombre de colonnes) est réglée par le parent
+  width: 100%;
   height: 100%;
   overflow: hidden;
 
